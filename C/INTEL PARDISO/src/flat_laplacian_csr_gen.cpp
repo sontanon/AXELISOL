@@ -961,7 +961,7 @@ void csr_gen_flat_laplacian(csr_matrix A,
 
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
-		rr2 = r * r + z * z * zor * zor;
+		rr2 = r * r * roz * roz + z * z;
 		A.ia[IDX(i, j)] = BASE + offset;
 		switch (robin)
 		{
