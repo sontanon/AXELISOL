@@ -11,7 +11,12 @@ where
 is the flat laplacian in cyllindrical coordinates.
 
 ## Sparse Direct Solver
-This solver utilizes [PARDISO](https://pardiso-project.org/) as the main solver. Although, this solver does considerable effort to simplify how the user calls it, please consult PARDISO's User Guide for more information.
+This solver discretizes the partial differential equation via finite differences into a linear system of equations. Such as system results to be sparse and can thus be solved with a specialized sparse solver. As such, **PARDISO** is the chosen direct solver. Throughout this project, two different versions of PARDISO may be utilized
+
+1. The oficial and up-to-date version available in the [PARDISO project page](https://pardiso-project.org/). This version will be referenced as `VANILLA PARDISO`. For more information, please consult the [User Guide](https://pardiso-project.org/manual/manual.pdf).
+2. INTEL MKL's version optimized for INTEL processors and INTEL compilers. This version, which will be referenced as `INTEL PARDISO`, can be aquired by installing [MKL](https://software.intel.com/en-us/mkl) and it has its own [User Guide](https://software.intel.com/en-us/mkl-developer-reference-fortran-intel-mkl-pardiso-parallel-direct-sparse-solver-interface).
+
+For more information on how these two version differ in their calls, see the *Usage* section.
 
 ## Prerequisites
 To compile `ELLSOLVE` you must have two main components:
@@ -27,14 +32,13 @@ source $INTEL/bin/iccvars.sh intel64
 source $INTEL/bin/compilervars.sh intel64
 source $INTEL/mkl/bin/mklvars.sh intel64
 ```
-2. **PARDSIO**. INTEL MKL ships with its own version of PARDISO, however you can choose to use the separtedly distributted version in [here](https://pardiso-project.org/). If you choose this version, be sure to aquire the INTEL version and to add it to your `LIBRARY_PATH`. For example, if you install the shared libraries `.so` into a directory inside your home directory, everything is taken care by including these lines inside your `~/.bashrc`.
+2. **PARDSIO**. INTEL MKL ships with its own version of PARDISO, however you can choose to use the ofical version in [here](https://pardiso-project.org/). If you choose this version, be sure to aquire the version compatible with INTEL's compilers (libpardiso500-INTEL1301-X86-64.so) and to add it to `LD_LIBRARY_PATH` and `LIBRARY_PATH`. For example, if you install the shared library `.so` into `~/PARDISO`, everything is taken care by including these lines inside your `~/.bashrc`.
 ```
 export PARDISO=$HOME/PARDISO
 export PARDISO_LIC_PATH=$PARDISO
 export LD_LIBRARY_PATH=$PARDISO:$LD_LIBRARY_PATH
 export LIBRARY_PATH=$PARDISO:$LIBRARY_PATH
 ```
-`ELLSOLVE` has four working version. Two are written in C and two in FORTRAN. Each of these two versions corresponds to using INTEL MKL's PARDISO or the official version. 
 
 ## Usage
 `ELLSOLVE` has three fundamental subroutines.
@@ -42,3 +46,6 @@ export LIBRARY_PATH=$PARDISO:$LIBRARY_PATH
 * `flat_laplacian`
 * `pardiso_start`
 * `pardiso_stop`
+
+## Compilation
+Assuming you have all the prerequisites, compilation is as simple as choosing one of the four versions and simply calling `make` which will create a `bin` directory for the object files and produce the executable.
