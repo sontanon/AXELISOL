@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		// Get arguments doing some sanity checks.
-		// Directoyr name.
+		// Directory name.
 		memset(dirname, 0, 256);
 		strcpy(dirname, argv[1]);
 
