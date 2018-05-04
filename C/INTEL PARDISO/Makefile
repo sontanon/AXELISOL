@@ -11,6 +11,9 @@ LIBS = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
 SRC_DIR := ./src
 OBJ_DIR := ./bin
 
+# Create build directory if necessary.
+$(shell mkdir -p $(OBJ_DIR))
+
 # Program sources and binaries.
 SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(subst src/,bin/,$(subst .cpp,.o,$(SRCS))) 
@@ -27,4 +30,4 @@ bin/%.o: src/%.cpp
 $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $(MAIN) $(LIBS)
 clean:
-	rm -f $(MAIN) bin/*.o
+	rm -rf $(MAIN) bin

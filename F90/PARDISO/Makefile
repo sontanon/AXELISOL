@@ -1,8 +1,10 @@
 # INTEL compiler.
 CC = icc
+F90 = ifort
 
 # INTEL compiler flags for OpenMP and optimization.
 CFLAGS = -qopenmp -O3 -Wall
+F90FLAGS = -qopenmp -O3
 
 # Libraries.
 LIBS = -lpardiso500-INTEL1301-X86-64 -lblas -llapack -lmkl_intel_lp64 -lmkl_gf_lp64 -lmkl_intel_thread -lmkl_core -lmkl_sequential -liomp5 -lgfortran -fopenmp -lpthread -lm -lstdc++ -lifcore
@@ -15,19 +17,25 @@ OBJ_DIR := ./bin
 $(shell mkdir -p $(OBJ_DIR))
 
 # Program sources and binaries.
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(subst src/,bin/,$(subst .cpp,.o,$(SRCS))) 
+C_SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+F_SRCS := $(wildcard $(SRC_DIR)/*.f90)
+SRCS := $(C_SRCS) $(F_SRCS)
+C_OBJS := $(subst src/,bin/,$(subst .cpp,.o,$(C_SRCS))) 
+F_OBJS := $(subst src/,bin/,$(subst .f90,.o,$(F_SRCS))) 
+OBJS := $(C_OBJS) $(F_OBJS)
 
 # Main execuatble object dependencies.
-MAIN = ELLSOLVERC
+MAIN = ELLSOLVERF
 
 all: $(MAIN)
 	@echo Executable has been compiled succesfully.
 
 bin/%.o: src/%.cpp
 	$(CC) $(CFLAGS) -c $< -o $@
+bin/%.o: src/%.f90
+	$(F90) $(F90FLAGS) -c $< -o $@
 
 $(MAIN): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $(MAIN) $(LIBS)
+	$(F90) $(F90FLAGS) $(OBJS) -o $(MAIN) $(LIBS)
 clean:
 	rm -rf $(MAIN) bin
