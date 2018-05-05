@@ -249,10 +249,20 @@ int main(int argc, char *argv[])
 	if (strcmp(solver, "flat") == 0)
 	{
 		// Fill linear source and RHS.
-		/*
-		// Linear source.
-		s[k] = exp(-aux_r * aux_r - aux_z * aux_z) * (0.5 + aux_r * aux_r * (-3.0 + aux_r * aux_r + aux_z * aux_z));
-		*/
+		#pragma omp parallel shared(s, f) private(aux_r, aux_z)
+		{
+			#pragma omp for schedule(guided)
+			for (k = 0; k < DIM; k++)
+			{
+				// Coordinates.
+				aux_r = r[k];
+				aux_z = z[k];
+				// Linear source.
+				s[k] = exp(-aux_r * aux_r - aux_z * aux_z) * (0.5 + aux_r * aux_r * (-3.0 + aux_r * aux_r + aux_z * aux_z));
+				// RHS.
+				f[k] = 0.0;
+			}
+		}
 
 		// Write linear source and RHS.
 		write_single_file(s, "s.asc", NrTotal, NzTotal);
