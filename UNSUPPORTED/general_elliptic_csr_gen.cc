@@ -12,6 +12,7 @@ int nnz_general_elliptic(const int NrInterior, const int NzInterior, const int o
 {
 	int nnz;
 
+	// Number of elements per Robin discretization.
 	int n_robin = robin + order;
 
 	// Second order Laplacian.

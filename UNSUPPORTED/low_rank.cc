@@ -1,5 +1,4 @@
 #include "tools.h"
-#include "param.h"
 #include "pardiso_param.h"
 
 // One-based indexing.
@@ -9,6 +8,16 @@
 #undef DEBUG
 
 // Number of different elements between matrices.
+// Flat Laplacian.
+int ndiff_flat_laplacian(const int NrInterior, const int NzInterior, const int order)
+{
+	// Number of elements is independent of order.
+	int ndiff = NrInterior * NzInterior;
+	
+	return ndiff;
+}
+
+// General elliptic equation.
 int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int order)
 {
 	int ndiff;
@@ -29,23 +38,15 @@ int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int
 	return ndiff;
 }
 
-// Print low-rank vector.
-void low_rank_print(const int *diff, const int ndiff, const char *fname)
+// Allocate diff array.
+void low_rank_allocate(const int ndiff)
 {
-	int k;
-
-	FILE *fp = fopen(fname, "w");
-
-	for (k = 0; k < 2 * ndiff + 1; k++)
-		fprintf(fp, "%d\n", diff[k]);
-
-	fclose(fp);
-}
-
-void low_rank_init(const int NrInterior, const int NzInterior, const int order)
-{
-	// Set number of differing elements.
-	ndiff = ndiff_general_elliptic(NrInterior, NzInterior, order);
+	// Check that diff array has not already been allocated.
+	if (diff)
+	{
+		printf("ERROR: Low Rank: While diff array was already allocated!\n");
+		exit(1);
+	}
 
 	// Allocate memory for diff array.
 	diff = (int *)malloc((2 * ndiff + 1) * sizeof(int));
@@ -55,13 +56,62 @@ void low_rank_init(const int NrInterior, const int NzInterior, const int order)
 #endif
 }
 
-void low_rank_die(void)
+// Deallocate diff array.
+void low_rank_deallocate(void)
 {
 	free(diff);
 }
 
+// Fill diff array.
+// Flat Laplacian.
+void low_rank_flat_laplacian(const int NrInterior, const int NzInterior, const int order)
+{
+	// Auxiliary integers.
+	int i, j;
 
-void low_rank_set(const int NrInterior, const int NzInterior, const int order)
+	// Number of elements we have filled in.
+	int offset = 0;
+
+	// Temporary offset.
+	int t_offset = 0;
+
+	// First element of diff array is ndiff itself.
+	diff[offset] = ndiff;
+
+	// Increase offset.
+	offset += 1;
+
+	// Set temporary offset.
+	t_offset = offset;
+
+	// Different elements are the same independent of order.
+	// They are always the interior diagonal elements.
+	#pragma omp parallel shared(diff) private(offset, j)
+	{
+		#pragma omp for schedule(guided)
+		for (i = 1; i < NrInterior + 1; i++)
+		{
+			// Each iteration of i loop will fill 2 * NzInterior elements in diff array. 
+			offset = t_offset + (i - 1) * 2 * NzInterior;
+
+			// Loop over interior points.
+			for (j = 1; j < NzInterior + 1; j++)
+			{
+				// Row indices.
+				diff[offset] = BASE + IDX(i, j);
+				// Column indices.
+				diff[offset + 1] = BASE + IDX(i, j);
+				// Increase offset.
+				offset += 2;
+			}
+		}
+	}
+
+	// All done.
+	return;
+}
+
+void low_rank_general_elliptic(const int NrInterior, const int NzInterior, const int order)
 {
 	// Auxiliary integers.
 	int i, j;
@@ -77,6 +127,9 @@ void low_rank_set(const int NrInterior, const int NzInterior, const int order)
 
 	// Increase offset.
 	offset += 1;
+
+	// Set temporary offset.
+	t_offset = offset;
 
 	// SECOND-ORDER GENERAL ELLIPTIC EQUATION.
 	if (order == 2)
@@ -596,10 +649,6 @@ void low_rank_set(const int NrInterior, const int NzInterior, const int order)
 		diff[offset + 53] = BASE + IDX(i + 1, j + 1);
 		// offset += 54;
 	}
-
-#ifdef DEBUG
-	low_rank_print(diff, ndiff, "diff.asc");
-#endif
 
 	// All done.
 	return;
