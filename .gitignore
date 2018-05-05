@@ -1,3 +1,4 @@
+*.swp
 *.asc
 .ipynb_checkpoints
 UNSUPPORTED/
