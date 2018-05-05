@@ -58,6 +58,9 @@ void pardiso_start(const int NrInterior, const int NzInterior)
 	// Allocate permutation vector.
 	perm = (int *)malloc(n * sizeof(int));
 
+	// Set Low Rank array pointing towards NULL.
+	diff = NULL;
+
 	// Setup matrix-vector multiplication type.
 	// Non-transposed, i.e. y = A*x.
 	uplo[0] = 'N';
