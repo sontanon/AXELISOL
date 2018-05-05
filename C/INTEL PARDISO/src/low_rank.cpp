@@ -47,6 +47,8 @@ void low_rank_flat_laplacian(const int NrInterior, const int NzInterior)
 {
 	// Auxiliary integers.
 	int i, j;
+	int NrTotal = NrInterior + 2;
+	int NzTotal = NzInterior + 2;
 
 	// Number of elements we have filled in.
 	int offset = 0;

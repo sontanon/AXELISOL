@@ -12,5 +12,6 @@ void flat_laplacian(double *u,	// Output solution.
 	const double dr, 	// Spatial step in r.
 	const double dz,	// Spatial step in z.
 	const int norder,	// Finite difference evolution: 2 or 4.
+	const int lr_use,	// Low rank update.
 	const int perm_use,	// Calculate and/or use permutation.
 	const int precond_use);	// Calculate and/or use preconditioner.

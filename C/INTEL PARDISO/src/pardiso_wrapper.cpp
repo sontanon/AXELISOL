@@ -35,62 +35,128 @@ void pardiso_wrapper(const csr_matrix A,// Matrix system to solve: Au = f.
 		iparm[4 - 1] = 10 * precond_use + 1;
 	}
 
-// Debugging and recheck procedures.
+	// Modify parameters according to Low-Rank update.
+	if (lr_use)
+	{
+		// Check if we are calling permutation or preconditioner.
+		if (precond_use || perm_use)
+		{
+			printf("WARNING: Calling permutation or preconditioner while using low rank update is not possible. Turning permutation and preconditioner off.\n");
+		}
+		// Set low rank parameters.
+		iparm[39 - 1] = 1;
+		iparm[24 - 1] = 10;
+		// No permutation.
+		iparm[5 - 1] = 0;
+		// No CGS.
+		iparm[4 - 1] = 0;
+		// Additional values.
+		iparm[28 - 1] = 0;
+		iparm[31 - 1] = 0;
+		iparm[36 - 1] = 0;
+		iparm[37 - 1] = 0;
+		iparm[56 - 1] = 0;
+		iparm[60 - 1] = 0;
+	}
+
+
+	// Debugging and recheck procedures.
 #ifdef DEBUG
 	// Check matrix for errors.
 	iparm[27 - 1] = 1;
 #endif
 
-	// Reordering and symbolic factorization.
-	phase = 11;
-	pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
-		&n, A.a, A.ia, A.ja, perm, &nrhs, 
-		iparm, &msglvl, &ddum, &ddum, &error);
-
-	if (error != 0) 
+	// If using low-rank, calls are different.
+	// Notice in particular that diff is used instead of perm array.
+	if (lr_use)
 	{
-		printf("ERROR during symbolic factorization: %d.\n", error);
-		exit(1);
+#ifdef VERBOSE
+		printf("PARDISO: Using Low Rank update to skip analysis phase.\n");
+#endif
+		// Numerical factorization.
+		phase = 22;
+		pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
+			&n, A.a, A.ia, A.ja, diff, &nrhs, 
+			iparm, &msglvl, &ddum, &ddum, &error);
+
+		if (error != 0) 
+		{
+			printf("ERROR during numerical factorization: %d.\n", error);
+			exit(2);
+		}
+
+#ifdef VERBOSE
+		printf("PARDISO: Factorization completed.\n");
+#endif
+
+		// Back substitution and iterative refinement.
+		phase = 33;
+		pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
+			&n, A.a, A.ia, A.ja, diff, &nrhs, 
+			iparm, &msglvl, f, u, &error);
+
+		if (error != 0) 
+		{
+			printf("ERROR during solution: %d,\n", error);
+			exit(3);
+		}
+
 	}
-	
-#ifdef VERBOSE
-	printf("PARDISO: Reordering completed.\n");
-	printf("PARDISO: Number of nonzeros in factors = %d.\n", iparm[18 - 1]);
-	printf("PARDISO: Number of factorization MFLOPS = %d.\n", iparm[19 - 1]);
-#endif
-
-	// Numerical factorization.
-	phase = 22;
-	pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
-		&n, A.a, A.ia, A.ja, perm, &nrhs, 
-		iparm, &msglvl, &ddum, &ddum, &error);
-
-	if (error != 0) 
+	// Complete phases if not using low-rank.
+	else 
 	{
-		printf("ERROR during numerical factorization: %d.\n", error);
-		exit(2);
-	}
 
+		// Reordering and symbolic factorization.
+		phase = 11;
+		pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
+			&n, A.a, A.ia, A.ja, perm, &nrhs, 
+			iparm, &msglvl, &ddum, &ddum, &error);
+
+		if (error != 0) 
+		{
+			printf("ERROR during symbolic factorization: %d.\n", error);
+			exit(1);
+		}
+		
 #ifdef VERBOSE
-	printf("PARDISO: Factorization completed.\n");
+		printf("PARDISO: Reordering completed.\n");
+		printf("PARDISO: Number of nonzeros in factors = %d.\n", iparm[18 - 1]);
+		printf("PARDISO: Number of factorization MFLOPS = %d.\n", iparm[19 - 1]);
 #endif
 
-	// Back substitution and iterative refinement.
-	phase = 33;
-	pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
-		&n, A.a, A.ia, A.ja, perm, &nrhs, 
-		iparm, &msglvl, f, u, &error);
+		// Numerical factorization.
+		phase = 22;
+		pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
+			&n, A.a, A.ia, A.ja, perm, &nrhs, 
+			iparm, &msglvl, &ddum, &ddum, &error);
 
-	// Report CGS iterations.
+		if (error != 0) 
+		{
+			printf("ERROR during numerical factorization: %d.\n", error);
+			exit(2);
+		}
+
 #ifdef VERBOSE
-	if (precond_use)
-		printf("PARDISO CGS PRECONDITIONER: iparm(20) = %d.\n", iparm[20 - 1]);
+		printf("PARDISO: Factorization completed.\n");
 #endif
 
-	if (error != 0) 
-	{
-		printf("ERROR during solution: %d,\n", error);
-		exit(3);
+		// Back substitution and iterative refinement.
+		phase = 33;
+		pardiso(pt, &maxfct, &mnum, &mtype, &phase, 
+			&n, A.a, A.ia, A.ja, perm, &nrhs, 
+			iparm, &msglvl, f, u, &error);
+
+		// Report CGS iterations.
+#ifdef VERBOSE
+		if (precond_use)
+			printf("PARDISO CGS PRECONDITIONER: iparm(20) = %d.\n", iparm[20 - 1]);
+#endif
+
+		if (error != 0) 
+		{
+			printf("ERROR during solution: %d,\n", error);
+			exit(3);
+		}
 	}
 
 
