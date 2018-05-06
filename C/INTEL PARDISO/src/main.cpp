@@ -277,7 +277,7 @@ int main(int argc, char *argv[])
 		start_time[0] = clock();
 		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
-			0, 0, 0);
+			0, 0);
 		end_time[0] = clock();
 		time[0] = (double)(end_time[0] - start_time[0])/CLOCKS_PER_SEC;
 
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 		start_time[3] = clock();
 		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
-			0, 0, 6);
+			0, 6);
 		end_time[3] = clock();
 		time[3] = (double)(end_time[3] - start_time[3])/CLOCKS_PER_SEC;
 
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 		start_time[5] = clock();
 		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
-			1, 0, 0);
+			1, 0);
 		end_time[5] = clock();
 		time[5] = (double)(end_time[5] - start_time[5])/CLOCKS_PER_SEC;
 	}
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		start_time[0] = clock();
 	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
-			0, 0, 0);
+			0, 0);
 		end_time[0] = clock();
 		time[0] = (double)(end_time[0] - start_time[0])/CLOCKS_PER_SEC;
 
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
 		start_time[3] = clock();
 	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
-			0, 0, 6);
+			0, 6);
 		end_time[3] = clock();
 		time[3] = (double)(end_time[3] - start_time[3])/CLOCKS_PER_SEC;
 
@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
         start_time[5] = clock(); 
         general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
         NrInterior, NzInterior, ghost, dr, dz, norder,
-			1, 0, 0);
+			1, 0);
 		end_time[5] = clock();
 		time[5] = (double)(end_time[5] - start_time[5])/CLOCKS_PER_SEC;
 	}

@@ -46,7 +46,6 @@ void flat_laplacian(double *u,	// Output solution.
 	const double dz,	// Spatial step in z.
 	const int norder,	// Finite difference evolution: 2 or 4.
 	const int lr_use,	// Use low rank update.
-	const int perm_use,	// Calculate and/or use permutation.
 	const int precond_use) 	// Calculate and/or use preconditioner.
 {
 	// Set original number of ghost zones.
@@ -103,7 +102,7 @@ void flat_laplacian(double *u,	// Output solution.
 	double tol = (norder == 4) ? dr * dr * dz * dz : dr * dz;
 
 	// Call elliptic solver.
-	pardiso_wrapper(A, g_u, g_f, g_res, tol, &norm, &convergence, INFNORM, lr_use, perm_use, precond_use);
+	pardiso_wrapper(A, g_u, g_f, g_res, tol, &norm, &convergence, INFNORM, lr_use, precond_use);
 
 	// Check solver convergence.
 	if (convergence == 1)

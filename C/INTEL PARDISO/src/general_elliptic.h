@@ -26,5 +26,4 @@ void general_elliptic(double *u,// Output solution.
 	const double dz,	// Spatial step in z.
 	const int norder,	// Finite difference evolution: 2 or 4.
 	const int lr_use,	// Use low rank update.
-	const int perm_use,	// Calculate and/or use permutation.
 	const int precond_use); 	// Calculate and/or use preconditioner.
