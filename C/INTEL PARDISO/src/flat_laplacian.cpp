@@ -32,9 +32,9 @@
 //  It returns the solution u(r, z) and the residual res(r, z).
 //
 void flat_laplacian(double *u,	// Output solution.
-	const double *f,	// Input RHS.
 	double *res,		// Ouput residual.
 	const double *s,	// Input linear source.
+	const double *f,	// Input RHS.
 	const double uInf,	// u value at infinity for Robin BC.
 	const int robin,	// Robin BC type: 1, 2, 3.
 	const int r_sym,	// R symmetry: 1(even), -1(odd).
@@ -92,14 +92,10 @@ void flat_laplacian(double *u,	// Output solution.
 	int DIM0 = NrTotal * NzTotal;
 	int nnz0 = nnz_flat_laplacian(NrInterior, NzInterior, norder, robin);
 	csr_allocate(&A, DIM0, DIM0, nnz0);
-	printf("FLAT LAPLACIAN: Allocated CSR matrix with %d rows, %d columns and %d nnz.\n", A.nrows, A.ncols, A.nnz);
+	printf("FLAT LAPLACIAN: Generated CSR matrix with %d rows, %d columns and %d nnz.\n", A.nrows, A.ncols, A.nnz);
 
 	// Fill CSR matrix.
 	csr_gen_flat_laplacian(A, NrInterior, NzInterior, norder, dr, dz, g_s, g_f, uInf, robin, r_sym, z_sym);
-
-#ifdef DEBUG
-	write_single_file(g_f, "f.asc", NrTotal, NzTotal);
-#endif
 
 	// Elliptic solver return variables.
 	double norm = 0.0;

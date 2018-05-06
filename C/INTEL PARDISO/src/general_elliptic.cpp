@@ -1,6 +1,7 @@
+// Global headers files.
 #include "tools.h"
-#include "param.h"
 
+// Elliptic solver headers.
 #include "general_elliptic_csr_gen.h"
 #include "pardiso_wrapper.h"
 #include "elliptic_tools.h"
@@ -8,43 +9,57 @@
 // Use infinity norm in solver.
 #define INFNORM 0
 
-void general_elliptic(double *u,
-	double *res,
-	const double *ell_a,
-	const double *ell_b,
-	const double *ell_c,
-	const double *ell_d,
-	const double *ell_e,
-	const double *ell_s,
-	const double *ell_f,
-	const double uInf,
-	const int robin,
-	const int r_sym,
-	const int z_sym,
-	const int perm_use,
-	const int precond_use,
-	const int low_rank_use)
+#undef DEBUG
+
+// General elliptic equation, solves the linear equation:
+//     2       2       2          
+// (a d  +  b d  +  c d  +  d d  +  e d  +  s) u = f,
+//     rr      rz      zz      r       z
+//
+// where u is the solution and a, b, c, d, e, f, s are all 
+// functions of (r, z).
+// 
+void general_elliptic(double *u,// Output solution.
+	double *res,                // Output residual. 
+	const double *ell_a,        // Input a coefficient.
+	const double *ell_b,        // Input b coefficient.
+	const double *ell_c,        // Input c coefficient.
+	const double *ell_d,        // Input d coefficient.
+	const double *ell_e,        // Input e coefficient.
+	const double *ell_s,        // Input s coefficient.
+	const double *ell_f,        // Input f coefficient.
+	const double uInf,	// u value at infinity for Robin BC.
+	const int robin,	// Robin BC type: 1, 2, 3.
+	const int r_sym,	// R symmetry: 1(even), -1(odd).
+	const int z_sym,	// Z symmetry: 1(even), -1(odd).
+	const int NrInterior,	// Number of r interior points.
+	const int NzInterior,	// Number of z interior points.
+	const int ghost_zones,	// Number of ghost zones.
+	const double dr, 	// Spatial step in r.
+	const double dz,	// Spatial step in z.
+	const int norder,	// Finite difference evolution: 2 or 4.
+	const int lr_use,	// Use low rank update.
+	const int perm_use,	// Calculate and/or use permutation.
+	const int precond_use) 	// Calculate and/or use preconditioner.
 {
-	int norder = 0;
+	// Set original number of ghost zones.
+	int ghost = ghost_zones;
 
-	if (strcmp(order, "two") == 0)
-	{
-		norder = 2;
-	}
-	else if (strcmp(order, "four") == 0)
-	{
-		norder = 4;
-	}
-
+	// The main point of this solver is that it works on a smaller grid
+	// than that used on the rest of the program.
+	// For a second and fourth order approximations, we use a grid of 
+	// NrInterior * NzInterior interior points plus a boundary of one point 
+	// all arround it, thus a grid of (NrInterior + 2) * (NzInterior + 2).
+	// 
+	// Therefore a reduction is necessary, eliminating the lower-left sides 
+	// of the grid which are later filled trivially using symmetry conditions.
+	//
 	// The current value of ghost zones is stored in temporary variable.
 	// Ghost zones will later be reset to this original value.
 	int temp_ghost = ghost;
 
 	// Size of reduced arrays.
-	size_t g_size;
-
-	// Set array size.
-	g_size = (NrInterior + 2) * (NzInterior + 2) * sizeof(double);
+	size_t g_size = (NrInterior + 2) * (NzInterior + 2) * sizeof(double);
 
 	// Allocate reduced arrays.
 	double *g_u = (double *)malloc(g_size);
@@ -72,8 +87,8 @@ void general_elliptic(double *u,
 	ghost = 1;
 
 	// Set temporary total number of points.
-	NrTotal = NrInterior + 2 * ghost;
-	NzTotal = NzInterior + 2 * ghost;
+	int NrTotal = NrInterior + 2;
+	int NzTotal = NzInterior + 2;
 
 	// Allocate and generate CSR matrix.
 	csr_matrix A;
@@ -83,33 +98,26 @@ void general_elliptic(double *u,
 
 	// Fill CSR matrix.
 	csr_gen_general_elliptic(A, NrInterior, NzInterior, norder, dr, dz, g_a, g_b, g_c, g_d, g_e, g_s, g_f, uInf, robin, r_sym, z_sym);
-
-	//printf("GENERATED CSR MATRIX.\n");
+	printf("GENREAL ELLIPTIC: Generated CSR matrix with %d rows, %d columns and %d nnz.\n", A.nrows, A.ncols, A.nnz);
 
 	// Elliptic solver return variables.
 	double norm = 0.0;
 	int convergence = 0;
-	double tol = pow(dr, 4);
+	double tol = (norder == 4) ? dr * dr * dz * dz : dr * dz;
 
 	// Call elliptic solver.
-	pardiso_wrapper(A, g_u, g_f, g_res, tol, &norm, &convergence, INFNORM, perm_use, precond_use, low_rank_use);
+	pardiso_wrapper(A, g_u, g_f, g_res, tol, &norm, &convergence, INFNORM, lr_use, perm_use, precond_use);
 
 	// Check solver convergence.
 	if (convergence == 1)
 	{
-		printf("***                                ***\n");
-		printf("***   Elliptic solver converged    ***\n");
-		printf("***                                ***\n");
+		printf("GENERAL ELLIPTIC: Solver converged!\n");
 	}
 	else
 	{
-		printf("***                                ***\n");
-		printf("***   Elliptic solver failed!  %d   ***\n", convergence);
-		printf("***                                ***\n");
+		printf("GENERAL ELIPTIC: WARNING possible no convergence: %d.!\n", convergence);
 	}
-	printf("***   Residual norm = %3.3e    ***\n", norm);
-	printf("***                                ***\n");
-	printf("**************************************\n");
+	printf("GENERAL ELLIPTIC: ||r|| = %3.3E.\n", norm);
 
 	// Reset ghost and total number of points.
 	ghost = temp_ghost;
@@ -133,4 +141,6 @@ void general_elliptic(double *u,
 
 	// Clear CSR matrix.
 	csr_deallocate(&A);
+
+    return;
 }

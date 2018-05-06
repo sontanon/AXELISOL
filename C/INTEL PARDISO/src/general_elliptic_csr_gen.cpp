@@ -1,8 +1,6 @@
+// Global header.
+// One-based indexing BASE is defined in this header.
 #include "tools.h"
-#include "param.h"
-
-// One-based indexing.
-#define BASE 1
 
 // Print CSR matrix for debug.
 #undef DEBUG
@@ -15,14 +13,14 @@ int nnz_general_elliptic(const int NrInterior, const int NzInterior, const int o
 	// Number of elements per Robin discretization.
 	int n_robin = robin + order;
 
-	// Second order Laplacian.
+	// Second order general elliptic equation.
 	if (order == 2)
 	{
 		nnz = 9 * NrInterior * NzInterior
 			+ (2 + n_robin) * (NrInterior + NzInterior)
 			+ (2 + 2 + 2 + n_robin);
 	}
-	// Fourth-order Laplacian.
+	// Fourth order general elliptic equation.
 	else if (order == 4)
 	{
 		nnz = 17 * (NrInterior - 2) * (NzInterior - 2)
@@ -38,20 +36,20 @@ int nnz_general_elliptic(const int NrInterior, const int NzInterior, const int o
 void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 	const int NrInterior,			// Number of r interior points.	
 	const int NzInterior,			// Number of z interior points.
-	const int order,			// Finite difference order: 2 or 4.
-	const double dr,			// Spatial step in r.
-	const double dz,			// Spatial step in z.
+	const int order,			    // Finite difference order: 2 or 4.
+	const double dr,			    // Spatial step in r.
+	const double dz,			    // Spatial step in z.
 	const double *ell_a,			// Coefficient of (d^2/dr^2)
 	const double *ell_b,			// Coefficient of (d^2/drdz)
 	const double *ell_c,			// Coefficient of (d^2/dz^)
 	const double *ell_d,			// Coefficient of (d/dr)
 	const double *ell_e,			// Coefficient of (d/dz)
 	const double *ell_s,			// Linear source.
-	double *ell_f,				// RHS.
-	const double uInfi,			// Value at infinity.
-	const int robin,			// Robin BC type: 1, 2, 3.
-	const int r_sym,			// R symmetry: 1(even), -1(odd).
-	const int z_sym)			// Z symmetry: 1(even), -1(odd).
+	double *ell_f,				    // RHS.
+	const double uInf,			    // Value at infinity.
+	const int robin,			    // Robin BC type: 1, 2, 3.
+	const int r_sym,			    // R symmetry: 1(even), -1(odd).
+	const int z_sym)			    // Z symmetry: 1(even), -1(odd).
 {
 	// Constant numbers.
 	const double third = 1.0 / 3.0;
@@ -84,6 +82,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 	// SECOND-ORDER GENERAL ELLIPTIC EQUATION.
 	if (order == 2)
 	{
+        // Start offset at zero.
 		offset = 0;
 
 		// Lower-left corner: diagonal symmetry.
@@ -157,7 +156,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				// Now loop over interior points.
 				for (j = 1; j < NzInterior + 1; j++)
 				{
-					// Fetch values.
+					// Fetch values, notice the dr * dz rescaling.
 					aux_a = ell_a[IDX(i, j)] * zor;
 					aux_b = 0.25 * ell_b[IDX(i, j)];
 					aux_c = ell_c[IDX(i, j)] * roz;
@@ -196,7 +195,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				j = NzInterior + 1;
 				// Z coordinate.
 				z = (double)j - 0.5;
-				// Radial coordinate.
+				// Radial coordinate: overal division by dz**2.
 				rr2 = r * r * roz * roz + z * z;
 				A.ia[IDX(i, NzInterior + 1)] = BASE + offset;
 				switch (robin)
@@ -238,6 +237,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 			#pragma omp for schedule(guided)
 			for (j = 1; j < NzInterior + 1; j++)
 			{
+                // Overall division by dr**2.
 				z = (double)j - 0.5;
 				rr2 = r * r + z * z * zor * zor;
 
@@ -247,14 +247,14 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				A.ia[IDX(NrInterior + 1, j)] = BASE + offset;
 				switch (robin)
 				{
-				case 1:
-					A.a[offset] = 0.5 * rr2 / r;
-					A.a[offset + 1] = -2.0 * rr2 / r;
-					A.a[offset + 2] = 1.0 + 1.5 * rr2 / r;
-					A.ja[offset] = BASE + IDX(NrInterior - 1, j);
-					A.ja[offset + 1] = BASE + IDX(NrInterior, j);
-					A.ja[offset + 2] = BASE + IDX(NrInterior + 1, j);
-					break;
+                    case 1:
+                        A.a[offset] = 0.5 * rr2 / r;
+                        A.a[offset + 1] = -2.0 * rr2 / r;
+                        A.a[offset + 2] = 1.0 + 1.5 * rr2 / r;
+                        A.ja[offset] = BASE + IDX(NrInterior - 1, j);
+                        A.ja[offset + 1] = BASE + IDX(NrInterior, j);
+                        A.ja[offset + 2] = BASE + IDX(NrInterior + 1, j);
+                        break;
 				}
 				// Also fill RHS term.
 				ell_f[IDX(NrInterior + 1, j)] = uInf;
@@ -267,6 +267,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Upper-right corner: fill with Robin.
 		r = (double)NrInterior + 0.5;
 		z = (double)NzInterior + 0.5;
+        // Radial coordinate over radial step.
 		rrodrr = sqrt((r * r * dr * dr + z * z * dz * dz) / (dr * dr + dz * dz));
 		A.ia[IDX(NrInterior + 1, NzInterior + 1)] = BASE + offset;
 		switch (robin)
@@ -328,7 +329,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		}
 
 #ifdef DEBUG
-		printf("Stage 1.\n");
+		printf("CSR FILL-IN: Stage 1.\n");
 #endif
 
 		// We have now filled:
@@ -519,7 +520,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		}
 
 #ifdef DEBUG
-		printf("Stage 2.\n");
+		printf("CSR FILL-IN: Stage 2.\n");
 #endif
 
 		// At this point we have filled:
@@ -623,6 +624,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// offset = (2 + 2) + 2 * NzInterior + 2 + 14 + 16 * (NzInterior - 2) + 21.
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
+        // Overall division by dz**2.
 		rr2 = r * r * roz * roz + z * z;
 		A.ia[IDX(1, NzInterior + 1)] = BASE + offset;
 		switch (robin)
@@ -826,7 +828,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 					offset += 17;
 				}
 
-				// Stencil for left strip.
+				// Stencil for top strip.
 				//
 				// o   o   o   o   o
 				//   \   \ | /   /
@@ -935,30 +937,31 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 				j = NzInterior + 1;
 				z = (double)j - 0.5;
+                // Overall division by dz**2.
 				rr2 = r * r * roz * roz + z * z;
 				A.ia[IDX(i, j)] = BASE + offset;
 				switch (robin)
 				{
-				case 1:
-					robin1 = rr2 / z;
-					A.a[offset] = robin1 / 4.0;
-					A.a[offset + 1] = -4.0 * robin1 / 3.0;
-					A.a[offset + 2] = 3.0 * robin1;
-					A.a[offset + 3] = -4.0 * robin1;
-					A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-					A.ja[offset] = BASE + IDX(i, NzInterior - 3);
-					A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
-					A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
-					A.ja[offset + 3] = BASE + IDX(i, NzInterior);
-					A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
-					break;
+                    case 1:
+                        robin1 = rr2 / z;
+                        A.a[offset] = robin1 / 4.0;
+                        A.a[offset + 1] = -4.0 * robin1 / 3.0;
+                        A.a[offset + 2] = 3.0 * robin1;
+                        A.a[offset + 3] = -4.0 * robin1;
+                        A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+                        A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+                        A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+                        A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+                        A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+                        A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+                        break;
 				}
 				ell_f[IDX(i, j)] = uInf;
 			}
 		}
 
 #ifdef DEBUG
-		printf("Stage 3.\n");
+		printf("CSR FILL-IN: Stage 3.\n");
 #endif
 
 		// At this point we have filled:
@@ -1083,10 +1086,10 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Set temporary offset.
 		t_offset = offset;
 
-#pragma omp parallel shared(A, ell_f) private(offset,\
+        #pragma omp parallel shared(A, ell_f) private(offset,\
 		aux_a, aux_b, aux_c, aux_d, aux_e, aux_s)
 		{
-#pragma omp for schedule(guided)
+            #pragma omp for schedule(guided)
 			for (j = 2; j < NzInterior; j++)
 			{
 				// Eac iteration fills 26 elements.
@@ -1101,7 +1104,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				// o---o---o---o---x---o
 				//       /   /   / | \
 				//     o   o   o   o   o
-				//       /   /   /   \
+				//       /   /   / | \
 				//     o   o   o   o   o
 				// 
 				// Thus:
@@ -1199,7 +1202,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 
 #ifdef DEBUG
-		printf("Stage 4.\n");
+		printf("CSR FILL-IN: Stage 4.\n");
 #endif
 
 		// At this point we have filled:
@@ -1327,23 +1330,24 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
+        // Overall division by dz**2.
 		rr2 = r * r * roz * roz + z * z;
 		A.ia[IDX(i, j)] = BASE + offset;
 		switch (robin)
 		{
-		case 1:
-			robin1 = rr2 / z;
-			A.a[offset] = robin1 / 4.0;
-			A.a[offset + 1] = -4.0 * robin1 / 3.0;
-			A.a[offset + 2] = 3.0 * robin1;
-			A.a[offset + 3] = -4.0 * robin1;
-			A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-			A.ja[offset] = BASE + IDX(i, NzInterior - 3);
-			A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
-			A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
-			A.ja[offset + 3] = BASE + IDX(i, NzInterior);
-			A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
-			break;
+            case 1:
+                robin1 = rr2 / z;
+                A.a[offset] = robin1 / 4.0;
+                A.a[offset + 1] = -4.0 * robin1 / 3.0;
+                A.a[offset + 2] = 3.0 * robin1;
+                A.a[offset + 3] = -4.0 * robin1;
+                A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+                A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+                A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+                A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+                A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+                A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+                break;
 		}
 		ell_f[IDX(i, j)] = uInf;
 		offset += n_robin;
@@ -1372,10 +1376,10 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Set temporary offset.
 		t_offset = offset;
 
-#pragma omp parallel shared(A, ell_f) private(offset, z, rr2,\
+        #pragma omp parallel shared(A, ell_f) private(offset, z, rr2,\
 		robin1, robin2, robin3)
 		{
-#pragma omp for schedule(guided)
+            #pragma omp for schedule(guided)
 			for (j = 1; j < NzInterior + 1; j++)
 			{
 				// Each iteration fills n_robin elements.
@@ -1383,30 +1387,31 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 				// Z coordinate.
 				z = (double)j - 0.5;
+                // Overall division by dr**2.
 				rr2 = r * r + z * z * zor * zor;
 				A.ia[IDX(i, j)] = BASE + offset;
 				switch (robin)
 				{
-				case 1:
-					robin1 = rr2 / r;
-					A.a[offset] = robin1 / 4.0;
-					A.a[offset + 1] = -4.0 * robin1 / 3.0;
-					A.a[offset + 2] = 3.0 * robin1;
-					A.a[offset + 3] = -4.0 * robin1;
-					A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-					A.ja[offset] = BASE + IDX(NrInterior - 3, j);
-					A.ja[offset + 1] = BASE + IDX(NrInterior - 2, j);
-					A.ja[offset + 2] = BASE + IDX(NrInterior - 1, j);
-					A.ja[offset + 3] = BASE + IDX(NrInterior, j);
-					A.ja[offset + 4] = BASE + IDX(NrInterior + 1, j);
-					break;
+                    case 1:
+                        robin1 = rr2 / r;
+                        A.a[offset] = robin1 / 4.0;
+                        A.a[offset + 1] = -4.0 * robin1 / 3.0;
+                        A.a[offset + 2] = 3.0 * robin1;
+                        A.a[offset + 3] = -4.0 * robin1;
+                        A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+                        A.ja[offset] = BASE + IDX(NrInterior - 3, j);
+                        A.ja[offset + 1] = BASE + IDX(NrInterior - 2, j);
+                        A.ja[offset + 2] = BASE + IDX(NrInterior - 1, j);
+                        A.ja[offset + 3] = BASE + IDX(NrInterior, j);
+                        A.ja[offset + 4] = BASE + IDX(NrInterior + 1, j);
+                        break;
 				}
 				ell_f[IDX(i, j)] = uInf;
 			}
 		}
 
 #ifdef DEBUG
-		printf("Stage 5.\n");
+		printf("CSR FILL-IN: Stage 5.\n");
 #endif
 
 		// At this point we have filled:
@@ -1423,9 +1428,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Finally, fill top corner with Robin
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
-
-		ell_f[IDX(i, j)] = uInf;
-		offset += n_robin;
+        // Radial coordinate over radial step.
 		rrodrr = sqrt((r * r * dr * dr + z * z * dz * dz) / (dr * dr + dz * dz));
 		A.ia[IDX(i, j)] = BASE + offset;
 		switch (robin)
@@ -1443,6 +1446,8 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 			A.ja[offset + 4] = BASE + IDX(NrInterior + 1, NzInterior + 1);
 			break;
 		}
+		ell_f[IDX(i, j)] = uInf;
+		offset += n_robin;
 
 		// offset = (2 + 2 + 2 + n_robin) + 2 * NzInterior 
 		// + 2 + 14 + 16 * (NzInterior - 2) + 21 + n_robin

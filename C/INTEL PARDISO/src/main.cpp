@@ -9,6 +9,9 @@
 // Flat solver.
 #include "flat_laplacian.h"
 
+// General solver.
+#include "general_elliptic.h"
+
 // SOLVER RANGES.
 #define NRINTERIOR_MIN 32
 #define NRINTERIOR_MAX 2048
@@ -74,7 +77,7 @@ int main(int argc, char *argv[])
 		// Solver type.
 		memset(solver, 0, 256);
 		strcpy(solver, argv[2]);
-		if ((strcmp(solver, "flat") == 0) || (strcmp(solver, "general")))
+		if (!(strcmp(solver, "flat") == 0) && !(strcmp(solver, "general") == 0))
 		{
 			printf("ELLSOLVEC: ERROR! Unrecognized solver %s. Only \"flat\" or \"general\" is supported.\n", solver);
 			exit(1);
@@ -178,8 +181,8 @@ int main(int argc, char *argv[])
 
 	// Print info to screen.
 	printf("ELLSOLVEC: System parameters are:\n");
-	pritnf("\tdirname\t= %s\n", dirname);
-	pritnf("\tsolver\t= %s\n", solver);
+	printf("\tdirname\t= %s\n", dirname);
+	printf("\tsolver\t= %s\n", solver);
 	printf("\torder\t= %d\n", norder);
 	printf("\tNrInterior\t= %d\n", NrInterior);
 	printf("\tNzInterior\t= %d\n", NzInterior);
@@ -246,6 +249,7 @@ int main(int argc, char *argv[])
 	pardiso_start(NrInterior, NzInterior);
 
 	// Choose between flat and general solver.
+    // Flat solver.
 	if (strcmp(solver, "flat") == 0)
 	{
 		// Fill linear source and RHS.
@@ -271,7 +275,7 @@ int main(int argc, char *argv[])
 		// Call solver.
 		printf("ELLSOLVEC: Calling normal solver.\n");
 		start_time[0] = clock();
-		flat_laplacian(u, f, res, s, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0, 0, 0);
 		end_time[0] = clock();
@@ -280,7 +284,7 @@ int main(int argc, char *argv[])
 		// Precondition with CGS.
 		printf("ELLSOLVEC: Solving with CGS.\n");
 		start_time[3] = clock();
-		flat_laplacian(u, f, res, s, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0, 0, 6);
 		end_time[3] = clock();
@@ -298,15 +302,80 @@ int main(int argc, char *argv[])
 		// Call solver with low rank update.
 		printf("ELLSOLVEC: Solving whith low rank update.\n");
 		start_time[5] = clock();
-		flat_laplacian(u, f, res, s, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			1, 0, 0);
 		end_time[5] = clock();
 		time[5] = (double)(end_time[5] - start_time[5])/CLOCKS_PER_SEC;
 	}
+    // General solver.
 	else if (strcmp(solver, "general") == 0)
 	{
 		// Fill coefficients, linear source and RHS.
+		#pragma omp parallel shared(a, b, c, d, e, s, f) private(aux_r, aux_z)
+		{
+			#pragma omp for schedule(guided)
+			for (k = 0; k < DIM; k++)
+			{
+				// Coordinates.
+				aux_r = r[k];
+				aux_z = z[k];
+                // Coefficients.
+                a[k] = aux_r;
+                b[k] = 0.0;
+                c[k] = aux_r;
+                d[k] = 1.0;
+                e[k] = 0.0;
+				// Linear source.
+				s[k] = aux_r * exp(-aux_r * aux_r - aux_z * aux_z) * (0.5 + aux_r * aux_r * (-3.0 + aux_r * aux_r + aux_z * aux_z));
+				// RHS.
+				f[k] = 0.0;
+			}
+		}
+		// Write coefficients.
+		write_single_file(a, "a.asc", NrTotal, NzTotal);
+		write_single_file(b, "b.asc", NrTotal, NzTotal);
+		write_single_file(c, "c.asc", NrTotal, NzTotal);
+		write_single_file(d, "d.asc", NrTotal, NzTotal);
+		write_single_file(e, "e.asc", NrTotal, NzTotal);
+		write_single_file(s, "s.asc", NrTotal, NzTotal);
+		write_single_file(f, "f.asc", NrTotal, NzTotal);
+
+		// Call solver.
+		printf("ELLSOLVEC: Calling normal solver.\n");
+		start_time[0] = clock();
+	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
+			NrInterior, NzInterior, ghost, dr, dz, norder,
+			0, 0, 0);
+		end_time[0] = clock();
+		time[0] = (double)(end_time[0] - start_time[0])/CLOCKS_PER_SEC;
+
+		// Precondition with CGS.
+		printf("ELLSOLVEC: Solving with CGS.\n");
+		start_time[3] = clock();
+	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
+			NrInterior, NzInterior, ghost, dr, dz, norder,
+			0, 0, 6);
+		end_time[3] = clock();
+		time[3] = (double)(end_time[3] - start_time[3])/CLOCKS_PER_SEC;
+
+		// Low rank update solve.
+		// Get number of differing elements.
+		int ndiff = ndiff_general_elliptic(NrInterior, NzInterior, norder);
+		printf("ELLSOLVEC: Number of differing elements in low rank update are %d.\n", ndiff);
+		// Allocate diff array.
+		low_rank_allocate(ndiff);
+		// Fill diff array for general elliptic.
+		low_rank_general_elliptic(NrInterior, NzInterior, norder);
+
+		// Call solver with low rank update.
+		printf("ELLSOLVEC: Solving whith low rank update.\n"); 
+        start_time[5] = clock(); 
+        general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
+        NrInterior, NzInterior, ghost, dr, dz, norder,
+			1, 0, 0);
+		end_time[5] = clock();
+		time[5] = (double)(end_time[5] - start_time[5])/CLOCKS_PER_SEC;
 	}
 
 	// Print execution times.
