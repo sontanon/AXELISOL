@@ -1,7 +1,7 @@
 void flat_laplacian(double *u,	// Output solution.
-	const double *f,	// Input RHS.
 	double *res,		// Ouput residual.
 	const double *s,	// Input linear source.
+	const double *f,	// Input RHS.
 	const double uInf,	// u value at infinity for Robin BC.
 	const int robin,	// Robin BC type: 1, 2, 3.
 	const int r_sym,	// R symmetry: 1(even), -1(odd).

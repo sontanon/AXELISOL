@@ -1,4 +1,4 @@
-// PARDISO prototypes.
+// PARDISO prototypes for shared library.
 extern "C" void pardisoinit (void *, int *, int *, int *, double *, int *);
 extern "C" void pardiso(void *, int *, int *, int *, int *,
 		int *, double *, int *, int *, int *, int *, 
