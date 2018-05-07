@@ -25,7 +25,7 @@ F_OBJS := $(subst src/,bin/,$(subst .f90,.o,$(F_SRCS)))
 OBJS := $(C_OBJS) $(F_OBJS)
 
 # Main execuatble object dependencies.
-MAIN = ELLSOLVERF
+MAIN = ELLSOLVEF
 
 all: $(MAIN)
 	@echo Executable has been compiled succesfully.

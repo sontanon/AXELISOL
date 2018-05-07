@@ -19,7 +19,7 @@ SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 OBJS := $(subst src/,bin/,$(subst .cpp,.o,$(SRCS))) 
 
 # Main execuatble object dependencies.
-MAIN = ELLSOLVERC
+MAIN = ELLSOLVEC
 
 all: $(MAIN)
 	@echo Executable has been compiled succesfully.
