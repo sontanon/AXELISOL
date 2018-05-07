@@ -1,4 +1,21 @@
+# Swap files.
 *.swp
+
+# Output ASCII files.
 *.asc
-.ipynb_checkpoints
-UNSUPPORTED/
+
+# Default output directories.
+**/output
+
+# Jupyter notebook checkpoints.
+**/.ipynb_checkpoints
+
+# Object files.
+*.o
+
+# Build directories.
+**/bin
+
+# Executables.
+ELLSOLVEC
+ELLSOLVEF
