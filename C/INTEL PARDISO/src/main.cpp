@@ -300,7 +300,7 @@ int main(int argc, char *argv[])
 		low_rank_flat_laplacian(NrInterior, NzInterior);
 
 		// Call solver with low rank update.
-		printf("ELLSOLVEC: Solving whith low rank update.\n");
+		printf("ELLSOLVEC: Solving with low rank update.\n");
 		start_time[5] = clock();
 		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,

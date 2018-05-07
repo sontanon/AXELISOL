@@ -1,40 +1,33 @@
-// Global header files.
+// Global headers files.
 #include "tools.h"
 
 // Elliptic solver headers.
-#include "flat_laplacian_csr_gen.h"
+#include "general_elliptic_csr_gen.h"
 #include "pardiso_wrapper.h"
 #include "elliptic_tools.h"
 
-// Use infinity norm in solver: 0(twonorm), 1(infnorm).
+// Use infinity norm in solver.
 #define INFNORM 0
 
 #undef DEBUG
 
-//  Flat Laplacian, solves the linear equation:
-//    __2
-//  ( \/     + s(r, z) ) u(r, z) = f(r, z).
-//  	flat
+// General elliptic equation, solves the linear equation:
+//     2       2       2          
+// (a d  +  b d  +  c d  +  d d  +  e d  +  s) u = f,
+//     rr      rz      zz      r       z
 //
-//  Where the Laplacian is the flat Laplacian in cylindrical
-//  coordinates:
-//
-//   __2       2      2
-//   \/     = d   +  d    + (1/r) d  .
-//     flat    rr     zz           r
-//
-//  And is solved to a specified order finite difference, 
-//  i.e. either second or fourth order.
-//
-//  s(r, z) is a linear source.
-//  f(r, z) is the RHS.
-//
-//  It returns the solution u(r, z) and the residual res(r, z).
-//
-extern "C" void flat_laplacian_(double *u,	// Output solution.
-	double *res,		// Ouput residual.
-	const double *s,	// Input linear source.
-	const double *f,	// Input RHS.
+// where u is the solution and a, b, c, d, e, f, s are all 
+// functions of (r, z).
+// 
+extern "C" void general_elliptic_(double *u,// Output solution.
+	double *res,                // Output residual. 
+	const double *ell_a,        // Input a coefficient.
+	const double *ell_b,        // Input b coefficient.
+	const double *ell_c,        // Input c coefficient.
+	const double *ell_d,        // Input d coefficient.
+	const double *ell_e,        // Input e coefficient.
+	const double *ell_s,        // Input s coefficient.
+	const double *ell_f,        // Input f coefficient.
 	const double uInf,	// u value at infinity for Robin BC.
 	const int robin,	// Robin BC type: 1, 2, 3.
 	const int r_sym,	// R symmetry: 1(even), -1(odd).
@@ -70,14 +63,24 @@ extern "C" void flat_laplacian_(double *u,	// Output solution.
 	// Allocate reduced arrays.
 	double *g_u = (double *)malloc(g_size);
 	double *g_f = (double *)malloc(g_size);
+	double *g_a = (double *)malloc(g_size);
+	double *g_b = (double *)malloc(g_size);
+	double *g_c = (double *)malloc(g_size);
+	double *g_d = (double *)malloc(g_size);
+	double *g_e = (double *)malloc(g_size);
 	double *g_s = (double *)malloc(g_size);
 	double *g_res = (double *)malloc(g_size);
 
 	// Reduce arrays.
 	ghost_reduce(u, g_u, NrInterior, NzInterior, ghost);
-	ghost_reduce(f, g_f, NrInterior, NzInterior, ghost);
-	ghost_reduce(s, g_s, NrInterior, NzInterior, ghost);
 	ghost_reduce(res, g_res, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_a, g_a, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_b, g_b, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_c, g_c, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_d, g_d, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_e, g_e, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_s, g_s, NrInterior, NzInterior, ghost);
+	ghost_reduce(ell_f, g_f, NrInterior, NzInterior, ghost);
 
 	// Set new ghost.
 	ghost = 1;
@@ -89,12 +92,12 @@ extern "C" void flat_laplacian_(double *u,	// Output solution.
 	// Allocate and generate CSR matrix.
 	csr_matrix A;
 	int DIM0 = NrTotal * NzTotal;
-	int nnz0 = nnz_flat_laplacian(NrInterior, NzInterior, norder, robin);
+	int nnz0 = nnz_general_elliptic(NrInterior, NzInterior, norder, robin);
 	csr_allocate(&A, DIM0, DIM0, nnz0);
-	printf("FLAT LAPLACIAN: Generated CSR matrix with %d rows, %d columns and %d nnz.\n", A.nrows, A.ncols, A.nnz);
 
 	// Fill CSR matrix.
-	csr_gen_flat_laplacian(A, NrInterior, NzInterior, norder, dr, dz, g_s, g_f, uInf, robin, r_sym, z_sym);
+	csr_gen_general_elliptic(A, NrInterior, NzInterior, norder, dr, dz, g_a, g_b, g_c, g_d, g_e, g_s, g_f, uInf, robin, r_sym, z_sym);
+	printf("GENREAL ELLIPTIC: Generated CSR matrix with %d rows, %d columns and %d nnz.\n", A.nrows, A.ncols, A.nnz);
 
 	// Elliptic solver return variables.
 	double norm = 0.0;
@@ -107,18 +110,18 @@ extern "C" void flat_laplacian_(double *u,	// Output solution.
 	// Check solver convergence.
 	if (convergence == 1)
 	{
-		printf("FLAT LAPLACIAN: Solver converged!\n");
+		printf("GENERAL ELLIPTIC: Solver converged!\n");
 	}
 	else
 	{
-		printf("FLAT LAPLACIAN: WARNING possible no convergence: %d.!\n", convergence);
+		printf("GENERAL ELIPTIC: WARNING possible no convergence: %d.!\n", convergence);
 	}
-	printf("FLAT LAPLACIAN: ||r|| = %3.3E.\n", norm);
+	printf("GENERAL ELLIPTIC: ||r|| = %3.3E.\n", norm);
 
 	// Reset ghost and total number of points.
 	ghost = temp_ghost;
-	NzTotal = NzInterior + ghost + 1;
 	NrTotal = NrInterior + ghost + 1;
+	NzTotal = NzInterior + ghost + 1;
 
 	// Transfer solution and residual to original arrays.
 	ghost_fill(g_u, u, r_sym, z_sym, NrInterior, NzInterior, ghost);
@@ -127,11 +130,16 @@ extern "C" void flat_laplacian_(double *u,	// Output solution.
 	// Clear memory.
 	free(g_u);
 	free(g_res);
-	free(g_f);
+	free(g_a);
+	free(g_b);
+	free(g_c);
+	free(g_d);
+	free(g_e);
 	free(g_s);
+	free(g_f);
 
 	// Clear CSR matrix.
 	csr_deallocate(&A);
 
-	return;
+    return;
 }

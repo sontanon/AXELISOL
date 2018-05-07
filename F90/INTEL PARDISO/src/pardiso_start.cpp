@@ -62,6 +62,10 @@ extern "C" void pardiso_start_(const int NrInterior, const int NzInterior)
 	// Non-transposed, i.e. y = A*x.
 	uplo[0] = 'N';
 
+    // Point diff array to NULL.
+    diff = NULL;
+    
+
 #ifdef VERBOSE
 	printf("PARDISO: Setup solver memory and parameters.\n");
 #endif
