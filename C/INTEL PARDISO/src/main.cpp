@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 	int norder = 2;
 	char solver[256] = "flat";
 	char dirname[256] = "output";
+	int nrobin = 1;
 	// Grid variables.
 	int NrTotal = 0;
 	int NzTotal = 0;
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
 	char opt;
 
 	// Get arguments from command line, first do a sanity check.
-	if (argc != 8)
+	if (argc < 8)
 	{
 		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz\n");
 		printf("           [solver] is the type of solver: flat or general.\n");
@@ -116,6 +117,16 @@ int main(int argc, char *argv[])
 		if ((dz < DZ_MIN) || (dz > DZ_MAX) || dz <= 0.0)
 		{
 			printf("ELLSOLVEC: ERROR! dz = %3.3E out of range [%3.3E, %3.3E].\n", dz, DZ_MIN, DZ_MAX);
+			exit(1);
+		}
+	}
+	// Get possible Robin operator.
+	if (argc == 9)
+	{
+		nrobin = atoi(argv[8]);
+		if (nrobin != 1 && nrobin != 2 && nrobin != 3)
+		{
+			printf("ELLSOLVEC: ERROR! nrobin = %d is not supported! Only 1, 2, 3.\n", nrobin);
 			exit(1);
 		}
 	}
@@ -275,7 +286,7 @@ int main(int argc, char *argv[])
 		// Call solver.
 		printf("ELLSOLVEC: Calling normal solver.\n");
 		start_time[0] = clock();
-		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0, 0);
 		end_time[0] = clock();
@@ -284,7 +295,7 @@ int main(int argc, char *argv[])
 		// Precondition with CGS.
 		printf("ELLSOLVEC: Solving with CGS.\n");
 		start_time[3] = clock();
-		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0, 6);
 		end_time[3] = clock();
@@ -302,7 +313,7 @@ int main(int argc, char *argv[])
 		// Call solver with low rank update.
 		printf("ELLSOLVEC: Solving with low rank update.\n");
 		start_time[5] = clock();
-		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			1, 0);
 		end_time[5] = clock();
