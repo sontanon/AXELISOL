@@ -20,14 +20,14 @@
 // functions of (r, z).
 // 
 extern "C" void general_elliptic_(double *u,// Output solution.
-	double *res,                // Output residual. 
-	const double *ell_a,        // Input a coefficient.
-	const double *ell_b,        // Input b coefficient.
-	const double *ell_c,        // Input c coefficient.
-	const double *ell_d,        // Input d coefficient.
-	const double *ell_e,        // Input e coefficient.
-	const double *ell_s,        // Input s coefficient.
-	const double *ell_f,        // Input f coefficient.
+	double *res,		// Output residual. 
+	const double *ell_a,	// Input a coefficient.
+	const double *ell_b,	// Input b coefficient.
+	const double *ell_c,	// Input c coefficient.
+	const double *ell_d,	// Input d coefficient.
+	const double *ell_e,	// Input e coefficient.
+	const double *ell_s,	// Input s coefficient.
+	const double *ell_f,	// Input f coefficient.
 	const double uInf,	// u value at infinity for Robin BC.
 	const int robin,	// Robin BC type: 1, 2, 3.
 	const int r_sym,	// R symmetry: 1(even), -1(odd).
@@ -38,7 +38,7 @@ extern "C" void general_elliptic_(double *u,// Output solution.
 	const double dr, 	// Spatial step in r.
 	const double dz,	// Spatial step in z.
 	const int norder,	// Finite difference evolution: 2 or 4.
-	const int precond_use) 	// Calculate and/or use preconditioner.
+	const int precond_use)	// Calculate and/or use preconditioner.
 {
 	// Set original number of ghost zones.
 	int ghost = ghost_zones;

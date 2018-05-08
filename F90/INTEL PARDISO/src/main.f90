@@ -161,7 +161,7 @@ PROGRAM ELLSOLVE_F90
 	L_RESULT = CHANGEDIRQQ(DIRNAME)
 	! CHECK FOR FAILURE.
 	IF (.NOT.L_RESULT) THEN
-		PRINT *, 'ELLSOLVEF: WARNIN! Could no CD to directory ', DIRNAME
+		PRINT *, 'ELLSOLVEF: WARNING! Could not CD to directory ', DIRNAME
 		PRINT *, 'Press (y/n) to procede and write in current directory:'
 		OPT = GETCHARQQ()
 		IF ((OPT == 'Y').OR.(OPT == 'y')) THEN
