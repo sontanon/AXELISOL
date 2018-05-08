@@ -119,8 +119,8 @@ void low_rank_general_elliptic(const int NrInterior, const int NzInterior, const
 {
 	// Auxiliary integers.
 	int i, j;
-    int NrTotal = NrInterior + 2;
-    int NzTotal = NzInterior + 2;
+    	int NrTotal = NrInterior + 2;
+    	int NzTotal = NzInterior + 2;
 
 	// Number of elements we have filled in.
 	int offset = 0;

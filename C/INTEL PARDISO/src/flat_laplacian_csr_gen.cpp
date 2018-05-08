@@ -32,18 +32,18 @@ int nnz_flat_laplacian(const int NrInterior, const int NzInterior, const int ord
 }
 
 // Write CSR matrix for the flat laplacian.
-void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
-	const int NrInterior,		// Number of r interior points.
-	const int NzInterior,		// Number of z interior points.
-	const int order,		    // Finite difference order: 2 or 4.
-	const double dr,		    // Spatial step in r.
-	const double dz,		    // Spatial step in z.
-	const double *s,		    // Linear source.
-	double *f,			        // RHS.
-	const double uInf,          // Value at infinity.
-	const int robin,		    // Robin BC type: 1, 2, 3.
-	const int r_sym,		    // R symmetry: 1(even), -1(odd).
-	const int z_sym)		    // Z symmetry: 1(even), -1(odd).
+void csr_gen_flat_laplacian(csr_matrix A,	// CSR matrix structure.
+	const int NrInterior,			// Number of r interior points.
+	const int NzInterior,			// Number of z interior points.
+	const int order,			// Finite difference order: 2 or 4.
+	const double dr,			// Spatial step in r.
+	const double dz,			// Spatial step in z.
+	const double *s,			// Linear source.
+	double *f,				// RHS.
+	const double uInf,			// Value at infinity.
+	const int robin,			// Robin BC type: 1, 2, 3.
+	const int r_sym,			// R symmetry: 1(even), -1(odd).
+	const int z_sym)			// Z symmetry: 1(even), -1(odd).
 {
 	// Constant numbers.
 	const double third = 1.0 / 3.0;
@@ -1347,7 +1347,7 @@ void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
 	}
 
 #ifdef DEBUG
-	csr_print(A, "A_a.asc", "A_ia.asc", "A_ja.asc");
+	csr_print(A, "fl_A_a.asc", "fl_A_ia.asc", "fl_A_ja.asc");
 #endif
 
 	// All done.
