@@ -1,6 +1,7 @@
 # Elliptic-Solver
 ## Purpose
-Solves a flat laplacian in axisymmetric space. Specifically, the linear elliptic equation
+This elliptic solver can solve two types of equations:
+1. A flat laplacian in axisymmetric space, i.e. the linear elliptic equation
 
 <a href="https://www.codecogs.com/eqnedit.php?latex=\left(\mathring{\nabla}^2\,&plus;s(\rho,&space;z)\right)\,u(\rho,z)&space;=&space;f(\rho,&space;z)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\left(\mathring{\nabla}^2\,&plus;s(\rho,&space;z)\right)\,u(\rho,z)&space;=&space;f(\rho,&space;z)" title="\left(\mathring{\nabla}^2\,+s(\rho, z)\right)\,u(\rho,z) = f(\rho, z)" /></a>
 
@@ -9,6 +10,11 @@ where
 <a href="https://www.codecogs.com/eqnedit.php?latex=\mathring{\nabla}^2&space;=&space;\frac{\partial^2}{\partial\rho^2}&space;&plus;&space;\frac{\partial^2}{\partial&space;z^2}&space;&plus;&space;\frac{1}{\rho}\,\frac{\partial}{\partial&space;\rho}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\mathring{\nabla}^2&space;=&space;\frac{\partial^2}{\partial\rho^2}&space;&plus;&space;\frac{\partial^2}{\partial&space;z^2}&space;&plus;&space;\frac{1}{\rho}\,\frac{\partial}{\partial&space;\rho}" title="\mathring{\nabla}^2 = \frac{\partial^2}{\partial\rho^2} + \frac{\partial^2}{\partial z^2} + \frac{1}{\rho}\,\frac{\partial}{\partial \rho}" /></a>
 
 is the flat laplacian in cyllindrical coordinates.
+
+2. A general linear elliptic equation with variable coefficients
+<a href="https://www.codecogs.com/eqnedit.php?latex=\dpi{100}&space;\left(a(\rho,z)\,\frac{\partial^2}{\partial&space;\rho^2}&space;&plus;&space;b(\rho,&space;z)\,\frac{\partial^2}{\partial&space;\rho\,\partial&space;z}&space;&plus;&space;c(\rho,&space;z)\,\frac{\partial^2}{\partial&space;z^2}&space;&plus;&space;d(\rho,&space;z)\,\frac{\partial}{\partial&space;\rho}&space;&plus;&space;e(\rho,&space;z)\,\frac{\partial}{\partial&space;z}&space;&plus;&space;s(\rho,&space;z)&space;\right)\,u(\rho,&space;z)=f(\rho,&space;z)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?\dpi{100}&space;\left(a(\rho,z)\,\frac{\partial^2}{\partial&space;\rho^2}&space;&plus;&space;b(\rho,&space;z)\,\frac{\partial^2}{\partial&space;\rho\,\partial&space;z}&space;&plus;&space;c(\rho,&space;z)\,\frac{\partial^2}{\partial&space;z^2}&space;&plus;&space;d(\rho,&space;z)\,\frac{\partial}{\partial&space;\rho}&space;&plus;&space;e(\rho,&space;z)\,\frac{\partial}{\partial&space;z}&space;&plus;&space;s(\rho,&space;z)&space;\right)\,u(\rho,&space;z)=f(\rho,&space;z)" title="\left(a(\rho,z)\,\frac{\partial^2}{\partial \rho^2} + b(\rho, z)\,\frac{\partial^2}{\partial \rho\,\partial z} + c(\rho, z)\,\frac{\partial^2}{\partial z^2} + d(\rho, z)\,\frac{\partial}{\partial \rho} + e(\rho, z)\,\frac{\partial}{\partial z} + s(\rho, z) \right)\,u(\rho, z)=f(\rho, z)" /></a>
+
+Both equations are solved in an axisymmetric space which also has equatorial symmetry.
 
 ## Sparse Direct Solver
 This solver discretizes the partial differential equation via finite differences into a linear system of equations. Such as system results to be sparse and can thus be solved with a specialized sparse solver. As such, **PARDISO** is the chosen direct solver. Throughout this project, two different versions of PARDISO may be utilized
