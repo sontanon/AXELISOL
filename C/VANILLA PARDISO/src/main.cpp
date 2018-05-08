@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 	int norder = 2;
 	char solver[256] = "flat";
 	char dirname[256] = "output";
+	int nrobin = 1;
 	// Grid variables.
 	int NrTotal = 0;
 	int NzTotal = 0;
@@ -45,14 +46,15 @@ int main(int argc, char *argv[])
 	char opt;
 
 	// Get arguments from command line, first do a sanity check.
-	if (argc != 8)
+	if (argc < 8)
 	{
-		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz\n");
+		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz nrobin\n");
 		printf("           [solver] is the type of solver: flat or general.\n");
 		printf("           [dirname] is a valid directory string name.\n");
 		printf("           [norder] is an integer equal to 2 or 4 corresponding to the finite difference order.\n");
 		printf("           [NrInterior] and [NzInterior] are integers equal to the number of interior points in r, z.\n");
 		printf("           [dr] and [dz] are floating point doubles equal to the spatial step in r, z.\n");
+		printf("           [nrobin] is an optional argument corresponding to Robin operator order: 1, 2, 3.\n");
 		printf("Press (y/n) to procede with default arguments:\n");
 		opt = getchar();
 		getchar();
@@ -115,6 +117,16 @@ int main(int argc, char *argv[])
 		if ((dz < DZ_MIN) || (dz > DZ_MAX) || dz <= 0.0)
 		{
 			printf("ELLSOLVEC: ERROR! dz = %3.3E out of range [%3.3E, %3.3E].\n", dz, DZ_MIN, DZ_MAX);
+			exit(1);
+		}
+	}
+	// Get possible Robin operator.
+	if (argc == 9)
+	{
+		nrobin = atoi(argv[8]);
+		if (nrobin != 1 && nrobin != 2 && nrobin != 3)
+		{
+			printf("ELLSOLVEC: ERROR! nrobin = %d is not supported! Only 1, 2, 3.\n", nrobin);
 			exit(1);
 		}
 	}
@@ -187,6 +199,7 @@ int main(int argc, char *argv[])
 	printf("\tNzInterior\t= %d\n", NzInterior);
 	printf("\tdr\t= %4.8E\n", dr);
 	printf("\tdz\t= %4.8E\n", dz);
+	printf("\tnrobin\t= %d\n", nrobin);
 
 	// Grid functions.
 	double *r, *z, *u, *f, *s, *res;
@@ -248,7 +261,7 @@ int main(int argc, char *argv[])
 	pardiso_start(NrInterior, NzInterior);
 
 	// Choose between flat and general solver.
-    // Flat solver.
+    	// Flat solver.
 	if (strcmp(solver, "flat") == 0)
 	{
 		// Fill linear source and RHS.
@@ -274,7 +287,7 @@ int main(int argc, char *argv[])
 		// Call solver.
 		printf("ELLSOLVEC: Calling normal solver.\n");
 		start_time[0] = clock();
-		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0);
 		end_time[0] = clock();
@@ -283,13 +296,13 @@ int main(int argc, char *argv[])
 		// Precondition with CGS.
 		printf("ELLSOLVEC: Solving with CGS.\n");
 		start_time[3] = clock();
-		flat_laplacian(u, res, s, f, 1.0, 1, 1, 1, 
+		flat_laplacian(u, res, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			6);
 		end_time[3] = clock();
 		time[3] = (double)(end_time[3] - start_time[3])/CLOCKS_PER_SEC;
 	}
-    // General solver.
+    	// General solver.
 	else if (strcmp(solver, "general") == 0)
 	{
 		// Fill coefficients, linear source and RHS.
@@ -301,12 +314,12 @@ int main(int argc, char *argv[])
 				// Coordinates.
 				aux_r = r[k];
 				aux_z = z[k];
-                // Coefficients.
-                a[k] = aux_r;
-                b[k] = 0.0;
-                c[k] = aux_r;
-                d[k] = 1.0;
-                e[k] = 0.0;
+				// Coefficients.
+				a[k] = aux_r;
+				b[k] = 0.0;
+				c[k] = aux_r;
+				d[k] = 1.0;
+				e[k] = 0.0;
 				// Linear source.
 				s[k] = aux_r * exp(-aux_r * aux_r - aux_z * aux_z) * (0.5 + aux_r * aux_r * (-3.0 + aux_r * aux_r + aux_z * aux_z));
 				// RHS.
@@ -325,7 +338,7 @@ int main(int argc, char *argv[])
 		// Call solver.
 		printf("ELLSOLVEC: Calling normal solver.\n");
 		start_time[0] = clock();
-	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
+		general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			0);
 		end_time[0] = clock();
@@ -334,7 +347,7 @@ int main(int argc, char *argv[])
 		// Precondition with CGS.
 		printf("ELLSOLVEC: Solving with CGS.\n");
 		start_time[3] = clock();
-	    general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, 1, 1, 1, 
+		general_elliptic(u, res, a, b, c, d, e, s, f, 1.0, nrobin, 1, 1, 
 			NrInterior, NzInterior, ghost, dr, dz, norder,
 			6);
 		end_time[3] = clock();

@@ -27,7 +27,7 @@ void pardiso_wrapper(const csr_matrix A,// Matrix system to solve: Au = f.
 		iparm[4 - 1] = 10 * precond_use + 1;
 	}
 
-// Debugging and recheck procedures.
+	// Debugging and recheck procedures.
 #ifdef DEBUG
 	printf("PARDISO: Doing DEBUG on matrix and vector.\n");
 	// Matrix check.

@@ -8,13 +8,8 @@
 #include <math.h>
 
 // OPENBLAS or MKL implementation.
-#define MKL
-#ifdef MKL
 #include "mkl_cblas.h"
 #include "mkl_spblas.h"
-#else
-#include "cblas.h"
-#endif
 
 #ifdef PARDISO_MAIN_FILE
 // Solver type.
