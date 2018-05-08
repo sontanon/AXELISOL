@@ -183,6 +183,19 @@ void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
 						A.ja[offset + 1] = BASE + IDX(i, NzInterior);
 						A.ja[offset + 2] = BASE + IDX(i, NzInterior + 1);
 						break;
+					case 2:
+						robin2 = (rr2 / z) * (rr2 / z);
+						robin1 = (rr2 / z) * (4.0 - (r * roz / z) * (r * roz / z));
+						A.a[offset] = -0.5 * robin2;
+						A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+						A.a[offset + 2] = -2.5 * robin2 - robin1;
+						A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior + 1);
+						break;
+
 				}
 				// Also fill RHS term.
 				f[IDX(i, NzInterior + 1)] = uInf;
@@ -228,6 +241,18 @@ void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
 						A.ja[offset + 1] = BASE + IDX(NrInterior, j);
 						A.ja[offset + 2] = BASE + IDX(NrInterior + 1, j);
 						break;
+					case 2:
+						robin2 = (rr2 / r) * (rr2 / r);
+						robin1 = (rr2 / r) * (4.0 - (z * zor / r) * (z * zor / r));
+						A.a[offset] = -0.5 * robin2;
+						A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+						A.a[offset + 2] = -2.5 * robin2 - robin1;
+						A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+						A.ja[offset] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior + 1, j);
+						break;
 				}
 				// Also fill RHS term.
 				f[IDX(NrInterior + 1, j)] = uInf;
@@ -252,6 +277,19 @@ void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
 				A.ja[offset + 1] = BASE + IDX(NrInterior, NzInterior);
 				A.ja[offset + 2] = BASE + IDX(NrInterior + 1, NzInterior + 1);
 				break;
+			case 2:
+				robin2 = rrodrr * rrodrr;
+				robin1 = 4.0 * rrodrr;
+				A.a[offset] = -0.5 * robin2;
+				A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+				A.a[offset + 2] = -2.5 * robin2 - robin1;
+				A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+				A.ja[offset] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 1, NzInterior -1);
+				A.ja[offset + 2] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 3] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+
 		}
 		offset += n_robin;
 		// Also fill RHS term.
@@ -501,19 +539,19 @@ void csr_gen_flat_laplacian(csr_matrix A, // CSR matrix structure.
 		A.ia[IDX(1, NzInterior + 1)] = BASE + offset;
 		switch (robin)
 		{
-		case 1:
-			robin1 = rr2 / z;
-			A.a[offset] = robin1 / 4.0;
-			A.a[offset + 1] = -4.0 * robin1 / 3.0;
-			A.a[offset + 2] = 3.0 * robin1;
-			A.a[offset + 3] = -4.0 * robin1;
-			A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-			A.ja[offset] = BASE + IDX(i, NzInterior - 3);
-			A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
-			A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
-			A.ja[offset + 3] = BASE + IDX(i, NzInterior);
-			A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
-			break;
+			case 1:
+				robin1 = rr2 / z;
+				A.a[offset] = robin1 / 4.0;
+				A.a[offset + 1] = -4.0 * robin1 / 3.0;
+				A.a[offset + 2] = 3.0 * robin1;
+				A.a[offset + 3] = -4.0 * robin1;
+				A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+				break;
 		}
 		f[IDX(1, NzInterior + 1)] = uInf;
 		offset += n_robin;
