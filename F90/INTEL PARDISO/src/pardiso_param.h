@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-// OPENBLAS or MKL implementation for BLAS and Sparse BLAS.
+// MKL implementation.
 #include "mkl_cblas.h"
 #include "mkl_spblas.h"
 

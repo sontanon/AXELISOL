@@ -36,20 +36,20 @@ int nnz_general_elliptic(const int NrInterior, const int NzInterior, const int o
 void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 	const int NrInterior,			// Number of r interior points.	
 	const int NzInterior,			// Number of z interior points.
-	const int order,			    // Finite difference order: 2 or 4.
-	const double dr,			    // Spatial step in r.
-	const double dz,			    // Spatial step in z.
+	const int order,			// Finite difference order: 2 or 4.
+	const double dr,			// Spatial step in r.
+	const double dz,			// Spatial step in z.
 	const double *ell_a,			// Coefficient of (d^2/dr^2)
 	const double *ell_b,			// Coefficient of (d^2/drdz)
 	const double *ell_c,			// Coefficient of (d^2/dz^)
 	const double *ell_d,			// Coefficient of (d/dr)
 	const double *ell_e,			// Coefficient of (d/dz)
 	const double *ell_s,			// Linear source.
-	double *ell_f,				    // RHS.
-	const double uInf,			    // Value at infinity.
-	const int robin,			    // Robin BC type: 1, 2, 3.
-	const int r_sym,			    // R symmetry: 1(even), -1(odd).
-	const int z_sym)			    // Z symmetry: 1(even), -1(odd).
+	double *ell_f,				// RHS.
+	const double uInf,			// Value at infinity.
+	const int robin,			// Robin BC type: 1, 2, 3.
+	const int r_sym,			// R symmetry: 1(even), -1(odd).
+	const int z_sym)			// Z symmetry: 1(even), -1(odd).
 {
 	// Constant numbers.
 	const double third = 1.0 / 3.0;
@@ -201,12 +201,40 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				switch (robin)
 				{
 					case 1:
-						A.a[offset] = 0.5 * rr2 / z;
-						A.a[offset + 1] = -2.0 * rr2 / z;
-						A.a[offset + 2] = 1.0 + 1.5 * rr2 / z;
+						robin1 = rr2 / z;
+						A.a[offset] = 0.5 * robin1;
+						A.a[offset + 1] = -2.0 * robin1;
+						A.a[offset + 2] = 1.0 + 1.5 * robin1;
 						A.ja[offset] = BASE + IDX(i, NzInterior - 1);
 						A.ja[offset + 1] = BASE + IDX(i, NzInterior);
 						A.ja[offset + 2] = BASE + IDX(i, NzInterior + 1);
+						break;
+					case 2:
+						robin2 = (rr2 / z) * (rr2 / z);
+						robin1 = (rr2 / z) * (4.0 - (r * roz / z) * (r * roz / z));
+						A.a[offset] = -0.5 * robin2;
+						A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+						A.a[offset + 2] = -2.5 * robin2 - robin1;
+						A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior + 1);
+						break;
+					case 3:
+						robin3 = (rr2 / z) * (rr2 / z) * (rr2 / z);
+						robin2 = (rr2 / z) * (rr2 / z) * (9.0 - 3.0 * (r * roz / z) * (r * roz / z));
+						robin1 = (rr2 / z) * (18.0 + (r * roz / z) * (r * roz / z) * (-9.0 + 3.0 * (rr2 / (z * z))));
+						A.a[offset] = 0.25 * robin3;
+						A.a[offset + 1] = -(7.0 * robin3 + robin2) / 6.0;
+						A.a[offset + 2] = 2.0 * robin3 + 2.0 * robin2 / 3.0 + robin1 / 12.0;
+						A.a[offset + 3] = -(1.5 * robin3 + 5.0 * robin2 / 6.0 + robin1 / 3.0);
+						A.a[offset + 4] = 1.0 + 5.0 * robin3 / 12.0 + robin2 / 3.0 + 0.25 * robin1;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
 						break;
 				}
 				// Also fill RHS term.
@@ -237,7 +265,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 			#pragma omp for schedule(guided)
 			for (j = 1; j < NzInterior + 1; j++)
 			{
-                // Overall division by dr**2.
+                		// Overall division by dr**2.
 				z = (double)j - 0.5;
 				rr2 = r * r + z * z * zor * zor;
 
@@ -247,14 +275,42 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				A.ia[IDX(NrInterior + 1, j)] = BASE + offset;
 				switch (robin)
 				{
-                    case 1:
-                        A.a[offset] = 0.5 * rr2 / r;
-                        A.a[offset + 1] = -2.0 * rr2 / r;
-                        A.a[offset + 2] = 1.0 + 1.5 * rr2 / r;
-                        A.ja[offset] = BASE + IDX(NrInterior - 1, j);
-                        A.ja[offset + 1] = BASE + IDX(NrInterior, j);
-                        A.ja[offset + 2] = BASE + IDX(NrInterior + 1, j);
-                        break;
+					case 1:
+						robin1 = (rr2 / r);
+						A.a[offset] = 0.5 * robin1;
+						A.a[offset + 1] = -2.0 * robin1;
+						A.a[offset + 2] = 1.0 + 1.5 * robin1;
+						A.ja[offset] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior + 1, j);
+						break;
+					case 2:
+						robin2 = (rr2 / r) * (rr2 / r);
+						robin1 = (rr2 / r) * (4.0 - (z * zor / r) * (z * zor / r));
+						A.a[offset] = -0.5 * robin2;
+						A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+						A.a[offset + 2] = -2.5 * robin2 - robin1;
+						A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+						A.ja[offset] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior + 1, j);
+						break;
+					case 3:
+						robin3 = (rr2 / r) * (rr2 / r) * (rr2 / r);
+						robin2 = (rr2 / r) * (rr2 / r) * (9.0 - 3.0 * (z * zor / r) * (z * zor / r));
+						robin1 = (rr2 / r) * (18.0 + (z * zor / r) * (z * zor / r) * (-9.0 + 3.0 * (rr2 / (r * r))));
+						A.a[offset] = 0.25 * robin3;
+						A.a[offset + 1] = -(7.0 * robin3 + robin2) / 6.0;
+						A.a[offset + 2] = 2.0 * robin3 + 2.0 * robin2 / 3.0 + robin1 / 12.0;
+						A.a[offset + 3] = -(1.5 * robin3 + 5.0 * robin2 / 6.0 + robin1 / 3.0);
+						A.a[offset + 4] = 1.0 + 5.0 * robin3 / 12.0 + robin2 / 3.0 + 0.25 * robin1;
+						A.ja[offset] = BASE + IDX(NrInterior - 3, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 4] = BASE + IDX(NrInterior + 1, j);
+						break;
 				}
 				// Also fill RHS term.
 				ell_f[IDX(NrInterior + 1, j)] = uInf;
@@ -267,18 +323,46 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Upper-right corner: fill with Robin.
 		r = (double)NrInterior + 0.5;
 		z = (double)NzInterior + 0.5;
-        // Radial coordinate over radial step.
+        	// Radial coordinate over radial step.
 		rrodrr = sqrt((r * r * dr * dr + z * z * dz * dz) / (dr * dr + dz * dz));
 		A.ia[IDX(NrInterior + 1, NzInterior + 1)] = BASE + offset;
 		switch (robin)
 		{
 			case 1:
-				A.a[offset] = 0.5 * rrodrr;
-				A.a[offset + 1] = -2.0 * rrodrr;
-				A.a[offset + 2] = 1.0 + 1.5 * rrodrr;
+				robin1 = rrodrr;
+				A.a[offset] = 0.5 * robin1;
+				A.a[offset + 1] = -2.0 * robin1;
+				A.a[offset + 2] = 1.0 + 1.5 * robin1;
 				A.ja[offset] = BASE + IDX(NrInterior - 1, NzInterior - 1);
 				A.ja[offset + 1] = BASE + IDX(NrInterior, NzInterior);
 				A.ja[offset + 2] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+			case 2:
+				robin2 = rrodrr * rrodrr;
+				robin1 = 4.0 * rrodrr;
+				A.a[offset] = -0.5 * robin2;
+				A.a[offset + 1] = 2.0 * robin2 + 0.25 * robin1;
+				A.a[offset + 2] = -2.5 * robin2 - robin1;
+				A.a[offset + 3] = 1.0 + robin2 + 0.75 * robin1;
+				A.ja[offset] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 1, NzInterior -1);
+				A.ja[offset + 2] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 3] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+			case 3:
+				robin3 = rrodrr * rrodrr * rrodrr;
+				robin2 = 9.0 * rrodrr * rrodrr;
+				robin1 = 18.0 * rrodrr;
+				A.a[offset] = 0.25 * robin3;
+				A.a[offset + 1] = -(7.0 * robin3 + robin2) / 6.0;
+				A.a[offset + 2] = 2.0 * robin3 + 2.0 * robin2 / 3.0 + robin1 / 12.0;
+				A.a[offset + 3] = -(1.5 * robin3 + 5.0 * robin2 / 6.0 + robin1 / 3.0);
+				A.a[offset + 4] = 1.0 + 5.0 * robin3 / 12.0 + robin2 / 3.0 + 0.25 * robin1;
+				A.ja[offset] = BASE + IDX(NrInterior - 3, NzInterior - 3);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 2] = BASE + IDX(NrInterior - 1, NzInterior -1);
+				A.ja[offset + 3] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 4] = BASE + IDX(NrInterior + 1, NzInterior + 1);
 				break;
 		}
 		offset += n_robin;
@@ -624,7 +708,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// offset = (2 + 2) + 2 * NzInterior + 2 + 14 + 16 * (NzInterior - 2) + 21.
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
-        // Overall division by dz**2.
+        	// Overall division by dz**2.
 		rr2 = r * r * roz * roz + z * z;
 		A.ia[IDX(1, NzInterior + 1)] = BASE + offset;
 		switch (robin)
@@ -641,6 +725,41 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
 				A.ja[offset + 3] = BASE + IDX(i, NzInterior);
 				A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+				break;
+			case 2:
+				robin2 = (rr2 / z) * (rr2 / z);
+				robin1 = (rr2 / z) * (4.0 - (r * roz / z) * (r * roz / z));
+				A.a[offset] = -5.0 * robin2 / 12.0;
+				A.a[offset + 1] = 61.0 * robin2 / 24.0 + 0.125 * robin1;
+				A.a[offset + 2] = -(6.5 * robin2 + 2.0 * robin1 / 3.0);
+				A.a[offset + 3] = 107.0 * robin2 / 12.0 + 1.5 * robin1;
+				A.a[offset + 4] = -(77.0 * robin2 / 12.0 + 2.0 * robin1);
+				A.a[offset + 5] = 1.0 + 1.875 * robin2 + 25.0 * robin1 / 24.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 4);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 5] = BASE + IDX(i, NzInterior + 1);
+				break;
+			case 3:
+				robin3 = (rr2 / z) * (rr2 / z) * (rr2 / z);
+				robin2 = (rr2 / z) * (rr2 / z) * (9.0 - 3.0 * (r * roz / z) * (r * roz / z));
+				robin1 = (rr2 / z) * (18.0 + (r * roz / z) * (r * roz / z) * (-9.0 + 3.0 * (rr2 / (z * z))));
+				A.a[offset] = 0.3125 * robin3;
+				A.a[offset + 1] = -(13.0 * robin3 / 6.0 + 5.0 * robin2 / 36.0);
+				A.a[offset + 2] = 307.0 * robin3 / 48.0 + 61.0 * robin2 / 72.0 + robin1 / 24.0;
+				A.a[offset + 3] = -(31.0 * robin3 / 3.0 + 13.0 * robin2 / 6.0 + 2.0 * robin1 / 9.0);
+				A.a[offset + 4] = 461.0 * robin3 / 48.0 + 107.0 * robin2 / 36.0 + 0.5 * robin1;
+				A.a[offset + 5] = -(29.0 * robin3 / 6.0 + 77.0 * robin2 / 36.0 + 2.0 * robin1 / 3.0);
+				A.a[offset + 6] = 1.0 + 49.0 * robin3 / 48.0 + 0.625 * robin2 + 25.0 * robin1 / 72.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 5);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 4);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 5] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 6] = BASE + IDX(i, NzInterior + 1);
 				break;
 		}
 		ell_f[IDX(1, NzInterior + 1)] = uInf;
@@ -937,24 +1056,59 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 				j = NzInterior + 1;
 				z = (double)j - 0.5;
-                // Overall division by dz**2.
+                		// Overall division by dz**2.
 				rr2 = r * r * roz * roz + z * z;
 				A.ia[IDX(i, j)] = BASE + offset;
 				switch (robin)
 				{
-                    case 1:
-                        robin1 = rr2 / z;
-                        A.a[offset] = robin1 / 4.0;
-                        A.a[offset + 1] = -4.0 * robin1 / 3.0;
-                        A.a[offset + 2] = 3.0 * robin1;
-                        A.a[offset + 3] = -4.0 * robin1;
-                        A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-                        A.ja[offset] = BASE + IDX(i, NzInterior - 3);
-                        A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
-                        A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
-                        A.ja[offset + 3] = BASE + IDX(i, NzInterior);
-                        A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
-                        break;
+					case 1:
+						robin1 = rr2 / z;
+						A.a[offset] = robin1 / 4.0;
+						A.a[offset + 1] = -4.0 * robin1 / 3.0;
+						A.a[offset + 2] = 3.0 * robin1;
+						A.a[offset + 3] = -4.0 * robin1;
+						A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+						break;
+					case 2:
+						robin2 = (rr2 / z) * (rr2 / z);
+						robin1 = (rr2 / z) * (4.0 - (r * roz / z) * (r * roz / z));
+						A.a[offset] = -5.0 * robin2 / 12.0;
+						A.a[offset + 1] = 61.0 * robin2 / 24.0 + 0.125 * robin1;
+						A.a[offset + 2] = -(6.5 * robin2 + 2.0 * robin1 / 3.0);
+						A.a[offset + 3] = 107.0 * robin2 / 12.0 + 1.5 * robin1;
+						A.a[offset + 4] = -(77.0 * robin2 / 12.0 + 2.0 * robin1);
+						A.a[offset + 5] = 1.0 + 1.875 * robin2 + 25.0 * robin1 / 24.0;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 4);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 3);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 4] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 5] = BASE + IDX(i, NzInterior + 1);
+						break;
+					case 3:
+						robin3 = (rr2 / z) * (rr2 / z) * (rr2 / z);
+						robin2 = (rr2 / z) * (rr2 / z) * (9.0 - 3.0 * (r * roz / z) * (r * roz / z));
+						robin1 = (rr2 / z) * (18.0 + (r * roz / z) * (r * roz / z) * (-9.0 + 3.0 * (rr2 / (z * z))));
+						A.a[offset] = 0.3125 * robin3;
+						A.a[offset + 1] = -(13.0 * robin3 / 6.0 + 5.0 * robin2 / 36.0);
+						A.a[offset + 2] = 307.0 * robin3 / 48.0 + 61.0 * robin2 / 72.0 + robin1 / 24.0;
+						A.a[offset + 3] = -(31.0 * robin3 / 3.0 + 13.0 * robin2 / 6.0 + 2.0 * robin1 / 9.0);
+						A.a[offset + 4] = 461.0 * robin3 / 48.0 + 107.0 * robin2 / 36.0 + 0.5 * robin1;
+						A.a[offset + 5] = -(29.0 * robin3 / 6.0 + 77.0 * robin2 / 36.0 + 2.0 * robin1 / 3.0);
+						A.a[offset + 6] = 1.0 + 49.0 * robin3 / 48.0 + 0.625 * robin2 + 25.0 * robin1 / 72.0;
+						A.ja[offset] = BASE + IDX(i, NzInterior - 5);
+						A.ja[offset + 1] = BASE + IDX(i, NzInterior - 4);
+						A.ja[offset + 2] = BASE + IDX(i, NzInterior - 3);
+						A.ja[offset + 3] = BASE + IDX(i, NzInterior - 2);
+						A.ja[offset + 4] = BASE + IDX(i, NzInterior - 1);
+						A.ja[offset + 5] = BASE + IDX(i, NzInterior);
+						A.ja[offset + 6] = BASE + IDX(i, NzInterior + 1);
+						break;
 				}
 				ell_f[IDX(i, j)] = uInf;
 			}
@@ -1086,10 +1240,10 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Set temporary offset.
 		t_offset = offset;
 
-        #pragma omp parallel shared(A, ell_f) private(offset,\
+        	#pragma omp parallel shared(A, ell_f) private(offset,\
 		aux_a, aux_b, aux_c, aux_d, aux_e, aux_s)
 		{
-            #pragma omp for schedule(guided)
+            		#pragma omp for schedule(guided)
 			for (j = 2; j < NzInterior; j++)
 			{
 				// Eac iteration fills 26 elements.
@@ -1330,24 +1484,60 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
-        // Overall division by dz**2.
+        	// Overall division by dz**2.
 		rr2 = r * r * roz * roz + z * z;
 		A.ia[IDX(i, j)] = BASE + offset;
 		switch (robin)
 		{
-            case 1:
-                robin1 = rr2 / z;
-                A.a[offset] = robin1 / 4.0;
-                A.a[offset + 1] = -4.0 * robin1 / 3.0;
-                A.a[offset + 2] = 3.0 * robin1;
-                A.a[offset + 3] = -4.0 * robin1;
-                A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-                A.ja[offset] = BASE + IDX(i, NzInterior - 3);
-                A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
-                A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
-                A.ja[offset + 3] = BASE + IDX(i, NzInterior);
-                A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
-                break;
+			case 1:
+				robin1 = rr2 / z;
+				A.a[offset] = robin1 / 4.0;
+				A.a[offset + 1] = -4.0 * robin1 / 3.0;
+				A.a[offset + 2] = 3.0 * robin1;
+				A.a[offset + 3] = -4.0 * robin1;
+				A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior + 1);
+				break;
+			case 2:
+				robin2 = (rr2 / z) * (rr2 / z);
+				robin1 = (rr2 / z) * (4.0 - (r * roz / z) * (r * roz / z));
+				A.a[offset] = -5.0 * robin2 / 12.0;
+				A.a[offset + 1] = 61.0 * robin2 / 24.0 + 0.125 * robin1;
+				A.a[offset + 2] = -(6.5 * robin2 + 2.0 * robin1 / 3.0);
+				A.a[offset + 3] = 107.0 * robin2 / 12.0 + 1.5 * robin1;
+				A.a[offset + 4] = -(77.0 * robin2 / 12.0 + 2.0 * robin1);
+				A.a[offset + 5] = 1.0 + 1.875 * robin2 + 25.0 * robin1 / 24.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 4);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 5] = BASE + IDX(i, NzInterior + 1);
+				break;
+			case 3:
+				robin3 = (rr2 / z) * (rr2 / z) * (rr2 / z);
+				robin2 = (rr2 / z) * (rr2 / z) * (9.0 - 3.0 * (r * roz / z) * (r * roz / z));
+				robin1 = (rr2 / z) * (18.0 + (r * roz / z) * (r * roz / z) * (-9.0 + 3.0 * (rr2 / (z * z))));
+				A.a[offset] = 0.3125 * robin3;
+				A.a[offset + 1] = -(13.0 * robin3 / 6.0 + 5.0 * robin2 / 36.0);
+				A.a[offset + 2] = 307.0 * robin3 / 48.0 + 61.0 * robin2 / 72.0 + robin1 / 24.0;
+				A.a[offset + 3] = -(31.0 * robin3 / 3.0 + 13.0 * robin2 / 6.0 + 2.0 * robin1 / 9.0);
+				A.a[offset + 4] = 461.0 * robin3 / 48.0 + 107.0 * robin2 / 36.0 + 0.5 * robin1;
+				A.a[offset + 5] = -(29.0 * robin3 / 6.0 + 77.0 * robin2 / 36.0 + 2.0 * robin1 / 3.0);
+				A.a[offset + 6] = 1.0 + 49.0 * robin3 / 48.0 + 0.625 * robin2 + 25.0 * robin1 / 72.0;
+				A.ja[offset] = BASE + IDX(i, NzInterior - 5);
+				A.ja[offset + 1] = BASE + IDX(i, NzInterior - 4);
+				A.ja[offset + 2] = BASE + IDX(i, NzInterior - 3);
+				A.ja[offset + 3] = BASE + IDX(i, NzInterior - 2);
+				A.ja[offset + 4] = BASE + IDX(i, NzInterior - 1);
+				A.ja[offset + 5] = BASE + IDX(i, NzInterior);
+				A.ja[offset + 6] = BASE + IDX(i, NzInterior + 1);
+				break;
+
 		}
 		ell_f[IDX(i, j)] = uInf;
 		offset += n_robin;
@@ -1376,10 +1566,10 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Set temporary offset.
 		t_offset = offset;
 
-        #pragma omp parallel shared(A, ell_f) private(offset, z, rr2,\
+        	#pragma omp parallel shared(A, ell_f) private(offset, z, rr2,\
 		robin1, robin2, robin3)
 		{
-            #pragma omp for schedule(guided)
+			#pragma omp for schedule(guided)
 			for (j = 1; j < NzInterior + 1; j++)
 			{
 				// Each iteration fills n_robin elements.
@@ -1387,24 +1577,59 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 
 				// Z coordinate.
 				z = (double)j - 0.5;
-                // Overall division by dr**2.
+                		// Overall division by dr**2.
 				rr2 = r * r + z * z * zor * zor;
 				A.ia[IDX(i, j)] = BASE + offset;
 				switch (robin)
 				{
-                    case 1:
-                        robin1 = rr2 / r;
-                        A.a[offset] = robin1 / 4.0;
-                        A.a[offset + 1] = -4.0 * robin1 / 3.0;
-                        A.a[offset + 2] = 3.0 * robin1;
-                        A.a[offset + 3] = -4.0 * robin1;
-                        A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
-                        A.ja[offset] = BASE + IDX(NrInterior - 3, j);
-                        A.ja[offset + 1] = BASE + IDX(NrInterior - 2, j);
-                        A.ja[offset + 2] = BASE + IDX(NrInterior - 1, j);
-                        A.ja[offset + 3] = BASE + IDX(NrInterior, j);
-                        A.ja[offset + 4] = BASE + IDX(NrInterior + 1, j);
-                        break;
+					case 1:
+						robin1 = rr2 / r;
+						A.a[offset] = robin1 / 4.0;
+						A.a[offset + 1] = -4.0 * robin1 / 3.0;
+						A.a[offset + 2] = 3.0 * robin1;
+						A.a[offset + 3] = -4.0 * robin1;
+						A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+						A.ja[offset] = BASE + IDX(NrInterior - 3, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 4] = BASE + IDX(NrInterior + 1, j);
+						break;
+					case 2:
+						robin2 = (rr2 / r) * (rr2 / r);
+						robin1 = (rr2 / r) * (4.0 - (z * zor / r) * (z * zor / r));
+						A.a[offset] = -5.0 * robin2 / 12.0;
+						A.a[offset + 1] = 61.0 * robin2 / 24.0 + 0.125 * robin1;
+						A.a[offset + 2] = -(6.5 * robin2 + 2.0 * robin1 / 3.0);
+						A.a[offset + 3] = 107.0 * robin2 / 12.0 + 1.5 * robin1;
+						A.a[offset + 4] = -(77.0 * robin2 / 12.0 + 2.0 * robin1);
+						A.a[offset + 5] = 1.0 + 1.875 * robin2 + 25.0 * robin1 / 24.0;
+						A.ja[offset] = BASE + IDX(NrInterior - 4, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 3, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 4] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 5] = BASE + IDX(NrInterior + 1, j);
+						break;
+					case 3:
+						robin3 = (rr2 / r) * (rr2 / r) * (rr2 / r);
+						robin2 = (rr2 / r) * (rr2 / r) * (9.0 - 3.0 * (z * zor / r) * (z * zor / r));
+						robin1 = (rr2 / r) * (18.0 + (z * zor / r) * (z * zor / r) * (-9.0 + 3.0 * (rr2 / (r * r))));
+						A.a[offset] = 0.3125 * robin3;
+						A.a[offset + 1] = -(13.0 * robin3 / 6.0 + 5.0 * robin2 / 36.0);
+						A.a[offset + 2] = 307.0 * robin3 / 48.0 + 61.0 * robin2 / 72.0 + robin1 / 24.0;
+						A.a[offset + 3] = -(31.0 * robin3 / 3.0 + 13.0 * robin2 / 6.0 + 2.0 * robin1 / 9.0);
+						A.a[offset + 4] = 461.0 * robin3 / 48.0 + 107.0 * robin2 / 36.0 + 0.5 * robin1;
+						A.a[offset + 5] = -(29.0 * robin3 / 6.0 + 77.0 * robin2 / 36.0 + 2.0 * robin1 / 3.0);
+						A.a[offset + 6] = 1.0 + 49.0 * robin3 / 48.0 + 0.625 * robin2 + 25.0 * robin1 / 72.0;
+						A.ja[offset] = BASE + IDX(NrInterior - 5, j);
+						A.ja[offset + 1] = BASE + IDX(NrInterior - 4, j);
+						A.ja[offset + 2] = BASE + IDX(NrInterior - 3, j);
+						A.ja[offset + 3] = BASE + IDX(NrInterior - 2, j);
+						A.ja[offset + 4] = BASE + IDX(NrInterior - 1, j);
+						A.ja[offset + 5] = BASE + IDX(NrInterior, j);
+						A.ja[offset + 6] = BASE + IDX(NrInterior + 1, j);
+						break;
 				}
 				ell_f[IDX(i, j)] = uInf;
 			}
@@ -1428,23 +1653,60 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 		// Finally, fill top corner with Robin
 		j = NzInterior + 1;
 		z = (double)j - 0.5;
-        // Radial coordinate over radial step.
+        	// Radial coordinate over radial step.
 		rrodrr = sqrt((r * r * dr * dr + z * z * dz * dz) / (dr * dr + dz * dz));
 		A.ia[IDX(i, j)] = BASE + offset;
 		switch (robin)
 		{
-		case 1:
-			A.a[offset] = rrodrr / 4.0;
-			A.a[offset + 1] = -4.0 * rrodrr / 3.0;
-			A.a[offset + 2] = 3.0 * rrodrr;
-			A.a[offset + 3] = -4.0 * rrodrr;
-			A.a[offset + 4] = 1.0 + 25.0 * rrodrr / 12.0;
-			A.ja[offset] = BASE + IDX(NrInterior - 3, NzInterior - 3);
-			A.ja[offset + 1] = BASE + IDX(NrInterior - 2, NzInterior - 2);
-			A.ja[offset + 2] = BASE + IDX(NrInterior - 1, NzInterior - 1);
-			A.ja[offset + 3] = BASE + IDX(NrInterior, NzInterior);
-			A.ja[offset + 4] = BASE + IDX(NrInterior + 1, NzInterior + 1);
-			break;
+			case 1:
+				robin1 = rrodrr;
+				A.a[offset] = robin1 / 4.0;
+				A.a[offset + 1] = -4.0 * robin1 / 3.0;
+				A.a[offset + 2] = 3.0 * robin1;
+				A.a[offset + 3] = -4.0 * robin1;
+				A.a[offset + 4] = 1.0 + 25.0 * robin1 / 12.0;
+				A.ja[offset] = BASE + IDX(NrInterior - 3, NzInterior - 3);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 2] = BASE + IDX(NrInterior - 1, NzInterior - 1);
+				A.ja[offset + 3] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 4] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+			case 2:
+				robin2 = rrodrr * rrodrr;
+				robin1 = 4.0 * rrodrr;
+				A.a[offset] = -5.0 * robin2 / 12.0;
+				A.a[offset + 1] = 61.0 * robin2 / 24.0 + 0.125 * robin1;
+				A.a[offset + 2] = -(6.5 * robin2 + 2.0 * robin1 / 3.0);
+				A.a[offset + 3] = 107.0 * robin2 / 12.0 + 1.5 * robin1;
+				A.a[offset + 4] = -(77.0 * robin2 / 12.0 + 2.0 * robin1);
+				A.a[offset + 5] = 1.0 + 1.875 * robin2 + 25.0 * robin1 / 24.0;
+				A.ja[offset] = BASE + IDX(NrInterior - 4, NzInterior - 4);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 3, NzInterior - 3);
+				A.ja[offset + 2] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 3] = BASE + IDX(NrInterior - 1, NzInterior - 1);
+				A.ja[offset + 4] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 5] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+			case 3:
+				robin3 = rrodrr * rrodrr * rrodrr;
+				robin2 = 9.0 * rrodrr * rrodrr;
+				robin1 = 18.0 * rrodrr;
+				A.a[offset] = 0.3125 * robin3;
+				A.a[offset + 1] = -(13.0 * robin3 / 6.0 + 5.0 * robin2 / 36.0);
+				A.a[offset + 2] = 307.0 * robin3 / 48.0 + 61.0 * robin2 / 72.0 + robin1 / 24.0;
+				A.a[offset + 3] = -(31.0 * robin3 / 3.0 + 13.0 * robin2 / 6.0 + 2.0 * robin1 / 9.0);
+				A.a[offset + 4] = 461.0 * robin3 / 48.0 + 107.0 * robin2 / 36.0 + 0.5 * robin1;
+				A.a[offset + 5] = -(29.0 * robin3 / 6.0 + 77.0 * robin2 / 36.0 + 2.0 * robin1 / 3.0);
+				A.a[offset + 6] = 1.0 + 49.0 * robin3 / 48.0 + 0.625 * robin2 + 25.0 * robin1 / 72.0;
+				A.ja[offset] = BASE + IDX(NrInterior - 5, NzInterior - 5);
+				A.ja[offset + 1] = BASE + IDX(NrInterior - 4, NzInterior - 4);
+				A.ja[offset + 2] = BASE + IDX(NrInterior - 3, NzInterior - 3);
+				A.ja[offset + 3] = BASE + IDX(NrInterior - 2, NzInterior - 2);
+				A.ja[offset + 4] = BASE + IDX(NrInterior - 1, NzInterior - 1);
+				A.ja[offset + 5] = BASE + IDX(NrInterior, NzInterior);
+				A.ja[offset + 6] = BASE + IDX(NrInterior + 1, NzInterior + 1);
+				break;
+
 		}
 		ell_f[IDX(i, j)] = uInf;
 		offset += n_robin;
@@ -1463,8 +1725,7 @@ void csr_gen_general_elliptic(csr_matrix A,	// CSR matrix structure.
 	}
 
 #ifdef DEBUG
-	csr_print(A, "ge_A.asc", "ge_iA.asc", "ge_jA.asc");
-	writeSingleFile(ell_f, "ge_f.asc");
+	csr_print(A, "ge_A_a.asc", "ge_A_ia.asc", "ge_A_ja.asc");
 #endif
 	// All done.
 	return;

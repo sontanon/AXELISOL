@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 	// Get arguments from command line, first do a sanity check.
 	if (argc < 8)
 	{
-		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz\n");
+		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz nrobin\n");
 		printf("           [solver] is the type of solver: flat or general.\n");
 		printf("           [dirname] is a valid directory string name.\n");
 		printf("           [norder] is an integer equal to 2 or 4 corresponding to the finite difference order.\n");

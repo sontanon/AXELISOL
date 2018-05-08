@@ -36,6 +36,7 @@ extern "C" void low_rank_deallocate_(void)
 
 // Number of different elements between matrices.
 // Flat Laplacian.
+// FORTRAN version.
 extern "C" void ndiff_flat_laplacian_(int *ndiff, const int NrInterior, const int NzInterior)
 {
 	// Number of elements is independent of order.
@@ -43,7 +44,16 @@ extern "C" void ndiff_flat_laplacian_(int *ndiff, const int NrInterior, const in
 	
 	return;
 }
+// C version.
+int ndiff_flat_laplacian(const int NrInterior, const int NzInterior)
+{
+	// Number of elements is independent of order.
+	int ndiff = NrInterior * NzInterior;
+	
+	return ndiff;
+}
 // General elliptic equation.
+// FORTRAN version.
 extern "C" void ndiff_general_elliptic_(int *ndiff, const int NrInterior, const int NzInterior, const int order)
 {
 	// Second order Laplacian.
@@ -61,15 +71,7 @@ extern "C" void ndiff_general_elliptic_(int *ndiff, const int NrInterior, const 
 
 	return;
 }
-// Flat Laplacian.
-int ndiff_flat_laplacian(const int NrInterior, const int NzInterior)
-{
-	// Number of elements is independent of order.
-	int ndiff = NrInterior * NzInterior;
-	
-	return ndiff;
-}
-// General elliptic equation.
+// C version.
 int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int order)
 {
 	int ndiff;
@@ -145,8 +147,8 @@ extern "C" void low_rank_general_elliptic_(const int NrInterior, const int NzInt
 {
 	// Auxiliary integers.
 	int i, j;
-    int NrTotal = NrInterior + 2;
-    int NzTotal = NzInterior + 2;
+    	int NrTotal = NrInterior + 2;
+    	int NzTotal = NzInterior + 2;
 
 	// Number of elements we have filled in.
 	int offset = 0;

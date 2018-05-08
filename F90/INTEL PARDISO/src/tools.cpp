@@ -48,7 +48,8 @@ typedef struct grid_params
 	double dz;
 } grid_param;
 
-// Write simple ASCII 2D file, FORTRAN version.
+// Write simple ASCII 2D file.
+// FORTRAN version.
 extern "C" void write_single_file_(const double *u, const char *fname, const int NrTotal, const int NzTotal)
 {
 	// Auxiliary integers.
@@ -71,7 +72,6 @@ extern "C" void write_single_file_(const double *u, const char *fname, const int
 
 	return;
 }
-
 // C version.
 void write_single_file(const double *u, const char *fname, const int NrTotal, const int NzTotal)
 {
