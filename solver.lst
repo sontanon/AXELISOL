@@ -1,4 +1,0 @@
-C_SOLVER = 
-F_SOVLER = 
-
-SOLVER = $(C_SOLVER)

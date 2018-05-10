@@ -1,176 +1,171 @@
-# Include solver sources.
+# -----------------------------------------------------------------------------
+# DEFAULTS AND INITIALIZATION.
+# -----------------------------------------------------------------------------
+# C compiler.
+CC = icc
+# FORTRAN compiler.
+F90 = ifort
 
+# C flags for 64 bit architecture and optimization.
+CFLAGS = -m64 -O2
+# FORTRAN flags: same.
+F90FLAGS = -m64 -O2
 
-# Help or wrong option print-out.
+# Linker flags.
+LDFLAGS = 
+
+# Preprocessor.
+FORTRAN_PP = 
+
+# MKL: Default are INTEL setups.
+# MKL libraries path.
+MKL_PATH=$(MKLROOT)/lib/intel64
+# Linker instruction path.
+MKL_LD_PATH=-L"$(MKL_PATH)"
+# MKL libraries.
+MKL_MAIN_LIBS = -lmkl_core -lmkl_intel_thread
+MKL_INTEL_LIB = -lmkl_intel_lp64
+MKL_FORTRAN_LIB  = 
+
+# OpenMP libraries.
+OMP_LIBS = -liomp5
+
+# Other libraries.
+OTHER_LIBS = -lpthread -lm -ldl
+FORTRAN_LIBS = -lstdc++
+
+# -----------------------------------------------------------------------------
+# HELP AND SANITY CHECKS.
+# -----------------------------------------------------------------------------
 help:
-	@echo $$'$(WRONG_OPTION)'
-	@echo "Elliptic Solver compile help."
+	@echo "Elliptic Solver help."
 	@echo ""
-	@echo "Usage: make Target [Options...]"
+	@echo "Usage make Target [Options...]"
 	@echo ""
 	@echo "   Target:"
-	@echo "      C		- Solver main program and subroutine calls are C based."
-	@echo "      FORTRAN	- Solver main program and subroutine calls are FORTRAN based."
-	@echo "      help	- Print this help."
+	@echo "      C          - Compile solver using C main program."
+	@echo "      FORTRAN    - Compile solver using FORTRAN main program."
+	@echo "      clean      - Remove binaries and executable."
+	@echo "      help       - Print this help."
 	@echo ""
 	@echo "   Options:"
 	@echo "      compiler={intel|gnu}"
-	@echo "          Specifies whether to use Intel compilers or GNU's alternatives."
-	@echo "          Default: intel."
-	@echo "      pardiso={mkl|vanilla}"
-	@echo "          Specifies whether to use MKL's version of PARDISO or the official one."
-	@echo "          Default: mkl."
-#	@echo "      MKLROOT=<MKL_directory>"
-#	@echo "          Specifies the location of MKL libraries used."
-#	@echo "          Default: The Intel MKL installation directory."
+	@echo "         Specifies whether to use Intel's icc or GNU's gcc."
+	@echo "         Default: intel."
 	@echo ""
-	@echo "Usage examples:"
-	@echo ""
-	@echo "   make C compiler=gnu pardiso=vanilla"
-	@echo "      Create C based executable using gcc and PARDISO's official version."
-	@echo ""
-	@echo "   make FORTRAN compiler=intel pardiso=mkl"
-	@echo "      Create FORTRAN based executable using ifort, icc and MKL's PARDISO."
-	@echo "" 
-# No MKL installation.
-#no_mkl:
-#	@echo ""
-#	@echo ""
-#	@echo "*** CRITICAL ERROR: There does not seem to be an MKL installation."
-#	@echo ""
-#	@echo ""
-#	@echo "Please install MKL and configure it properly with the scripts provided in"
-#	@echo "the installlation. A succesfull installation will have MKLROOT in your"
-#	@echo "enviroment variables."
-#	@echo ""
 
-# Defaults
-compiler=intel
-interface=lp64
-threading=omp
-pardiso=mkl
 
-# Check for compiler option.
+# Check compiler options.
 ifneq ($(compiler),intel)
-ifneq ($(compiler),gnu)
-MSG2+=compiler=$(compiler)
-endif
-endif
-
-# Check for PARDISO version option.
-ifneq ($(pardiso),mkl)
-ifneq ($(pardiso),vanilla)
-MSG2+=pardiso=$(pardiso)
-endif
+  ifneq ($(compiler),gnu)
+    MSG += compiler = $(compiler)
+  endif
 endif
 
 # Check for errors in command line options.
-ifneq ("$(MSG2)","")
-WRONG_OPTION=\n\n*** COMMAND LINE ERROR: Wrong value of option(s): $(MSG2)\n\n
-TARGET=help
+ifneq ("$(MSG)","")
+  WRONG_OPTION = \n\n*** COMMAND LINE ERROR: Wrong value of option(s): $(MSG)\n\n
+  TARGET = help
 endif
 
-# Actual compiling.
-ifdef _IA
-
-# Static vs. Dynamic linking.
-ifdef ($(SD),static)
- EXT=a
- RES_EXT=lib
- S_GRP=-Wl,--start-group
- E_GRP=-WL,--end-group
-else
- EXT=so
- RES_EXT=so
- S_GRP=
- E_GRP=
-endif
-
-# Check for MKLROOT
-ifndef MKLROOT
- $(warning *** MKLROOT is not setup. Perhaps user has not installed MKL or set it up properly.)
- $(error Try >make help)
-endif
-MKL_PATH = $(MKLROOT)/lib/$(_IA)
-CMPLR_PATH = $(MKLROOT)/../compiler/lib/$(_IA)
-TBB_PATH=$(MKLROOT)/../tbb/lib/$(_IA)/gcc4.4
-
-# Linker options.
-LOPTS = 
-
-# Compiler options.
+# -----------------------------------------------------------------------------
+# SETUP VARIABLES.
+# -----------------------------------------------------------------------------
+# Set compiler first.
 ifeq ($(compiler),gnu)
- override COMPILER=gcc
- IFACE_COMP_PART=intel
- IFACE_THREADING_PART=gnu
- ifeq ($(RES_EXT),so)
-  LOPTS = -Wl,--no-as-needed
- endif
+  override CC = gcc
+  override F90 = gfortran
 else
- override COMPILER=icc
- IFACE_COMP_PART=intel
- IFACE_THREADING_PART=intel
+  ifeq ($(compiler),intel)
+    override CC = icc
+    override F90 = ifort
+  endif
 endif
-OPTIONS = -w
 
-# PARDISO options.
-ifeq ($(pardiso),vanilla)
- PARDISO_OPTS = 
-
-# Architecture options.
-ifeq ($(_IA),ia32)
- ifeq ($(interface),ilp64)
-  $(warning *** ILP64 interface is not available for MKL-IA32)
-  $(error Try >make help)
- endif
- if ($(compiler),intel)
-  # This option tells the compiler to generate optimized code for Pentium or later processor.
-  OPTIONS += -mia32
- endif
- IFACE_SUFF=
- M32_64 = -m64 # This option tells the compiler to generate code for IA-32 architecture.
+# Setup options.
+ifeq ($(compiler),gnu)
+  # Modify flags for OpenMP.
+  CFLAGS += -fopenmp
+  F90FLAGS += -fopenmp
+  # Modify linker flags.
+  LDFLAGS += -Wl,--no-as-needed
 else
- IFACE_SUFF=_$(threading)
- M32_64=-m64 # This option tells the compiler to generate code for Intel64 architecture.
+  # Intel OpenMP.
+  CFLAGS += -qopenmp
+  F90FLAGS += -qopenmp
 endif
 
-# MKL library paths.
-ifeq ($(EXT),so)
- MKL_LD_PATH=-L"$(MKL_PATH)"
- MKL_PREFIX=-l
- MKL_SUFFIX=
+# Check for gfortran compiler.
+ifeq ($(compiler),gnu)
+  MKL_FORTRAN_LIB = -lmkl_gf_lp64
 else
- MKL_LD_PATH=
- MKL_PREFIX="$(MKL_PATH)/lib
- MKL_SUFFIX=.a"
-endif
-IFACE_LIB=$(MKL_PREFIX)mkl_$(IFACE_COMP_PART)$(IFACE_SUFF)$(MKL_SUFFIX)
-
-# Interface options.
-ifeq ($(interface),ilp64)
- OPTIONS += -DMKL_ILP64
+  MKL_FORTRAN_LIB = -lmkl_intel_lp64
 endif
 
-# Threading options.
-ifeq ($(threading),sequential)
- THREADING_LIB=$(MKL_PREFIX)mkl_sequential$(MKL_SUFFIX)
- OMP_LIB = 
-else
-ifeq ($(threading),omp)
- THREADING_LIB=$(MKL_PREFIX)mkl_$(IFACE_THREADING_PART)_thread$(MKL_SUFFIX)
- OMP_LIB = -L"$(CMPLR_PATH)" -liomp5
-else
- THREADING_LIB=$(MKL_PREFIX)mkl_tbb_thread$(MKL_SUFFIX)
- OMP_LIB = -L"$(TBB_PATH)" -ltbb -lstdc++
-endif
-endif
+# -----------------------------------------------------------------------------
+# SOURCES AND BINARIES.
+# -----------------------------------------------------------------------------
+# Source and binaries directory.
+SRC_DIR := ./src
+OBJ_DIR := ./bin
 
-CORE_LIB=$(MKL_PREFIX)mkl_core$(MKL_SUFFIX)
+# Create build directory if necessary.
+$(shell mkdir -p $(OBJ_DIR))
 
-endif # ifdef _IA
+# Program sources and binaries.
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+OBJS := $(subst src/,bin/,$(subst .cpp,.o,$(SRCS))) 
+C_MAIN_SRC := src/main.cpp
+F_MAIN_SRC := src/main.f90
+C_SRCS := src/elliptic_tools.cpp src/flat_laplacian.cpp src/flat_laplacian_csr_gen.cpp src/general_elliptic.cpp src/general_elliptic_csr_gen.cpp src/low_rank.cpp src/pardiso_start.cpp src/pardiso_stop.cpp src/pardiso_wrapper.cpp src/tools.cpp
 
-#------------------------------------------------------------------------------
-# C Target compilation.
-#------------------------------------------------------------------------------
-C: 
-	@$(MAKE) $(TARGET) --no-print-directory SD=dynamic _IA=intel64
+C_MAIN_OBJ := bin/main_c.o
+F_MAIN_OBJ := bin/main_f.o
+C_OBJS := bin/elliptic_tools.o bin/flat_laplacian.o bin/flat_laplacian_csr_gen.o bin/general_elliptic.o bin/general_elliptic_csr_gen.o bin/low_rank.o bin/pardiso_start.o bin/pardiso_stop.o bin/pardiso_wrapper.o bin/tools.o
+
+# -----------------------------------------------------------------------------
+# MAIN COMPILATION AND LINKING.
+# -----------------------------------------------------------------------------
+#  Executable name.
+C_EXE = ELLSOLVEC
+F_EXE = ELLSOLVEF
+
+# C-based executable.
+C: $(C_EXE)
+
+# FORTRAN-based executable.
+FORTRAN: FORTRAN_PP = -D FORTRAN
+FORTRAN: $(F_EXE)
+
+# C main file.
+$(C_MAIN_OBJ): $(C_MAIN_SRC)
+	@echo ""
+	@echo "Compiling C main program..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# FORTRAN main file.
+$(F_MAIN_OBJ): $(F_MAIN_SRC)
+	@echo ""
+	@echo "Compiling FORTRAN main program..."
+	$(F90) $(F90FLAGS) -c $< -o $@
+
+# Program C binaries.
+bin/%.o: src/%.cpp
+	$(CC) $(CFLAGS) $(FORTRAN_PP) -c $< -o $@
+
+# Link C executable.
+$(C_EXE): $(C_MAIN_OBJ) $(C_OBJS)	
+	@echo ""
+	@echo "Linking with C compiler..."
+	$(CC) $(CFLAGS) $(C_OBJS) $(C_MAIN_OBJ) -o $(C_EXE) $(LDFLAGS) $(MKL_LD_PATH) $(MKL_MAIN_LIBS) $(MKL_INTEL_LIB) $(OMP_LIBS) $(OTHER_LIBS)
+
+# Link FORTRAN executable.
+$(F_EXE): $(F_MAIN_OBJ) $(C_OBJS)
+	@echo ""
+	@echo "Linking with FORTRAN compiler..."
+	$(F90) $(F90FLAGS) $(C_OBJS) $(F_MAIN_OBJ) -o $(F_EXE) $(LDFLAGS) $(MKL_LD_PATH) $(MKL_MAIN_LIBS) $(MKL_FORTRAN_LIB) $(OMP_LIBS) $(OTHER_LIBS) $(FORTRAN_LIBS)
+
+# Clean up binaries and executable.
+clean:
+	@echo "Cleaning up executables and binaries..."
+	rm -rf $(C_EXE) $(F_EXE) bin
