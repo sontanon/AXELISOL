@@ -7,6 +7,11 @@
 #include <omp.h>
 #include <string.h>
 
+// System headers.
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 // CSR matrix index base.
 #define BASE 1
 
@@ -47,6 +52,121 @@ typedef struct grid_params
 	// Spatial step in z.
 	double dz;
 } grid_param;
+
+// I/O subroutines in C for FORTRAN for GNU compatibility.
+// Print help message.
+#ifdef FORTRAN
+extern "C" void print_help_(void)
+{
+	// User input char.
+	char opt;
+
+	printf("ELLSOLVEF: WARNING! Usage is  $./ELLSOLVEF dirname solver norder NrInterior NzInterior dr dz nrobin\n");
+	printf("           [solver] is the type of solver: flat or general.\n");
+	printf("           [dirname] is a valid directory string name.\n");
+	printf("           [norder] is an integer equal to 2 or 4 corresponding to the finite difference order.\n");
+	printf("           [NrInterior] and [NzInterior] are integers equal to the number of interior points in r, z.\n");
+	printf("           [dr] and [dz] are floating point doubles equal to the spatial step in r, z.\n");
+	printf("           [nrobin] is an optional argument corresponding to Robin operator order: 1, 2, 3.\n");
+	printf("Press (y/n) to procede with default arguments:\n");
+	opt = getchar();
+	getchar();
+	if ((opt =='y') || (opt == 'Y'))
+	{
+		printf("ELLSOLVEF: User chose to proceed with default arguments.\n");
+	}
+	else
+	{
+		printf("ELLSOLVEF: User chose to abort.\n");
+		exit(1);
+	}
+
+	return;
+}
+#else
+void print_help(void)
+{
+	// User input char.
+	char opt;
+
+	printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz nrobin\n");
+	printf("           [solver] is the type of solver: flat or general.\n");
+	printf("           [dirname] is a valid directory string name.\n");
+	printf("           [norder] is an integer equal to 2 or 4 corresponding to the finite difference order.\n");
+	printf("           [NrInterior] and [NzInterior] are integers equal to the number of interior points in r, z.\n");
+	printf("           [dr] and [dz] are floating point doubles equal to the spatial step in r, z.\n");
+	printf("           [nrobin] is an optional argument corresponding to Robin operator order: 1, 2, 3.\n");
+	printf("Press (y/n) to procede with default arguments:\n");
+	opt = getchar();
+	getchar();
+	if ((opt =='y') || (opt == 'Y'))
+	{
+		printf("ELLSOLVEC: User chose to proceed with default arguments.\n");
+	}
+	else
+	{
+		printf("ELLSOLVEC: User chose to abort.\n");
+		exit(1);
+	}
+
+	return;
+}
+#endif
+
+// Make directory and CD to it.
+#ifdef FORTRAN
+extern "C" void make_directory_and_cd_(const char *dirname)
+#else
+void make_directory_and_cd(const char *dirname)
+#endif
+{
+	// User input char.
+	char opt;
+
+	// First create directory.
+	struct stat st = { 0 };
+	printf("I/O: Trying to create directory %s...\n", dirname);
+	if (stat(dirname, &st) == -1)
+	{
+
+		mkdir(dirname, 0755);
+	}
+	else 
+	{
+		printf("I/O: WARNING! Directory %s already exists.\n", dirname);
+		printf("Press (y/n) to procede and possibly overwrite files:\n");
+		opt = getchar();
+		getchar();
+		if ((opt =='y') || (opt == 'Y'))
+		{
+			printf("I/O: User chose to proceed.\n");
+		}
+		else
+		{
+			printf("I/O: User chose to abort.\n");
+			exit(1);
+		}
+	}
+	// Now CD to output directory.
+	if (chdir(dirname) == -1)
+	{
+		printf("I/O: WARNING! Could not CD to %s directory.\n", dirname);
+		printf("Press (y/n) to procede and write in current directory:\n");
+		opt = getchar();
+		getchar();
+		if ((opt =='y') || (opt == 'Y'))
+		{
+			printf("I/O: User chose to proceed.\n");
+		}
+		else
+		{
+			printf("I/O: User chose to abort.\n");
+			exit(1);
+		}
+	}
+
+	return;
+}
 
 // Write simple ASCII 2D file.
 void write_single_file(const double *u, const char *fname, const int NrTotal, const int NzTotal)

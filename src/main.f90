@@ -1,9 +1,6 @@
 PROGRAM ELLSOLVE_F90
 	! C BINDINGS MODULE USED FOR PROPER C SIZES.
 	USE ISO_C_BINDING
-	! SYSTEM MODULES.
-	USE IFPORT
-	USE IFCORE
 	! NO IMPLICIT VARIABLES.
 	IMPLICIT NONE 
 	! SOLVER RANGES.
@@ -52,25 +49,12 @@ PROGRAM ELLSOLVE_F90
 
 	! PROCESS PARAMETERS.
 	! GET ARGUMENTS FROM COMMAND LINE.
-	NUM_ARG = NARGS()
+	NUM_ARG = IARGC()
 
 	! SANITY CHECK.
 	IF (NUM_ARG < 8) THEN
-		PRINT *, 'ELLSOLVEF: WARNING! Usage is $./ELLSOLVEF dirname solver norder NrInterior NzInterior dr dz nrobin'
-        	PRINT *, '           [solver] is the type of solver: flat or general.'
-		PRINT *, '           [dirname] is a valid directory string name.'
-		PRINT *, '           [norder] = is and integer equal to 2 or 4 corresponding to the finite difference order.'
-		PRINT *, '           [NrInterior] and [NzInterior] are integers equal to the number of interior points in r, z.'
-		PRINT *, '           [dr] and [dz] are floating point dobles equal to the spatial step in r, z.'
-		PRINT *, '           [nrobin] is an optional argument corresponding to Robin operator order: 1, 2, 3.'
-		PRINT *, 'Press (y/n) to procede with default arguments:'
-		OPT = GETCHARQQ()
-		IF ((OPT == 'Y').OR.(OPT == 'y')) THEN
-			PRINT *, 'ELLSOLVEF: User chose to proceed with default arguments.'
-		ELSE
-			PRINT *, 'ELLSOLVEF: User chose to abort.'
-			CALL EXIT(1)
-		END IF
+		! PRINT HELP.
+		CALL PRINT_HELP()
 	ELSE
 		! GET ARGUMENTS DOING SOME SANITY CHECKS.
 		! DIRECTORY NAME.
@@ -78,8 +62,8 @@ PROGRAM ELLSOLVE_F90
 
 		! SOLVER TYPE.
 		CALL GETARG(2, SOLVER)
-		IF ((SOLVER .NE. 'flat') .AND. (SOLVER .NE. 'general')) THEN
-		    PRINT *, 'ELLSOLVEF: ERROR! Unrecongnized solver ', SOLVER, ' Only "flat" or "general" is supported.'
+		IF ((TRIM(SOLVER) .NE. 'flat') .AND. (TRIM(SOLVER) .NE. 'general')) THEN
+		    PRINT *, 'ELLSOLVEF: ERROR! Unrecongnized solver ', TRIM(SOLVER), ' Only "flat" or "general" is supported.'
 		    CALL EXIT(1)
 		END IF
 
@@ -131,46 +115,8 @@ PROGRAM ELLSOLVE_F90
 		END IF
 	END IF
 
-	! DO I/O ON OUTPUT DIRECTORY.
-	! CREATE DIRECTORY.
-	L_RESULT = MAKEDIRQQ(DIRNAME)
-	! CHECK FOR FAILURE.
-	IF (.NOT.L_RESULT) THEN
-		ERRNUM = GETLASTERRORQQ()
-		! PERMISSION DENIED.
-		IF (ERRNUM == ERR$ACCES) THEN
-			PRINT *, 'ERROR: Permision denied on MKDIR ', DIRNAME
-			CALL EXIT(1)
-		ELSE IF (ERRNUM == ERR$EXIST) THEN
-			PRINT *, 'ELLSOLVEF: WARNING! Directory ', DIRNAME, ' already existes.'
-			PRINT *, 'Press (y/n) to procede and possibly overwrite files:'
-			OPT = GETCHARQQ()
-			IF ((OPT == 'Y').OR.(OPT == 'y')) THEN
-				PRINT *, 'ELLSOLVEF: User chose to proceed.'
-			ELSE
-				PRINT *, 'ELLSOLVEF: User chose to abort.'
-				CALL EXIT(1)
-			END IF
-		ELSE IF (ERRNUM == ERR$NOENT) THEN
-			PRINT *, 'ERROR: Path specified was not found on MKDIR ', DIRNAME
-			CALL EXIT(1)
-		END IF
-	ENDIF
-
-	! CD TO DIRECTORY.
-	L_RESULT = CHANGEDIRQQ(DIRNAME)
-	! CHECK FOR FAILURE.
-	IF (.NOT.L_RESULT) THEN
-		PRINT *, 'ELLSOLVEF: WARNING! Could not CD to directory ', DIRNAME
-		PRINT *, 'Press (y/n) to procede and write in current directory:'
-		OPT = GETCHARQQ()
-		IF ((OPT == 'Y').OR.(OPT == 'y')) THEN
-			PRINT *, 'ELLSOLVEF: User chose to proceed.'
-		ELSE
-			PRINT *, 'ELLSOLVEF: User chose to abort.'
-			CALL EXIT(1)
-		END IF
-	ENDIF
+	! DO I/O ON OUTPUT DIRECTORY: DO NOT FORGET TO TRIM STRING.
+	CALL MAKE_DIRECTORY_AND_CD(TRIM(DIRNAME)//C_NULL_CHAR)
 
 	! GET NUMBER OF GHOST ZONES ACCORDING TO FINITE DIFFERENCE ORDER.
 	IF (NORDER == 2) THEN
@@ -186,8 +132,8 @@ PROGRAM ELLSOLVE_F90
 
 	! PRINT INFO TO SCREEN.
 	PRINT *, 'ELLSOLVEF: System parameters are:'
-	PRINT *, '      dirname    = ', DIRNAME
-	PRINT *, '      solver     = ', SOLVER
+	PRINT *, '      dirname    = ', TRIM(DIRNAME)
+	PRINT *, '      solver     = ', TRIM(SOLVER)
 	PRINT *, '      order      = ', NORDER
 	PRINT *, '      NrInterior = ', NRINTERIOR
 	PRINT *, '      NzInterior = ', NZINTERIOR

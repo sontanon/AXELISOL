@@ -1,6 +1,3 @@
-// Architecture: UNIX based vs. Windows.
-#undef WIN
-
 // Standard headers.
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,6 +39,10 @@ typedef struct csr_matrices
 
 // Forward declarations.
 // 
+// Print help message.
+void print_help(void);
+// Make directory and CD to it.
+void make_directory_and_cd(const char *dirname);
 // Write simple ASCII 2D file.
 void write_single_file(const double *u, const char *fname, const int NrTotal, const int NzTotal);
 // Create CSR matrix.

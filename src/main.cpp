@@ -49,25 +49,7 @@ int main(int argc, char *argv[])
 	// Get arguments from command line, first do a sanity check.
 	if (argc < 8)
 	{
-		printf("ELLSOLVEC: WARNING! Usage is  $./ELLSOLVEC dirname solver norder NrInterior NzInterior dr dz nrobin\n");
-		printf("           [solver] is the type of solver: flat or general.\n");
-		printf("           [dirname] is a valid directory string name.\n");
-		printf("           [norder] is an integer equal to 2 or 4 corresponding to the finite difference order.\n");
-		printf("           [NrInterior] and [NzInterior] are integers equal to the number of interior points in r, z.\n");
-		printf("           [dr] and [dz] are floating point doubles equal to the spatial step in r, z.\n");
-		printf("           [nrobin] is an optional argument corresponding to Robin operator order: 1, 2, 3.\n");
-		printf("Press (y/n) to procede with default arguments:\n");
-		opt = getchar();
-		getchar();
-		if ((opt =='y') || (opt == 'Y'))
-		{
-			printf("ELLSOLVEC: User chose to proceed with default arguments.\n");
-		}
-		else
-		{
-			printf("ELLSOLVEC: User chose to abort.\n");
-			exit(1);
-		}
+		print_help();
 	}
 	else
 	{
@@ -133,46 +115,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Do I/O on output directory.
-	// First create directory.
-	struct stat st = { 0 };
-	if (stat(dirname, &st) == -1)
-	{
-
-		mkdir(dirname, 0755);
-	}
-	else 
-	{
-		printf("ELLSOLVEC: WARNING! Directory %s already exists.\n", dirname);
-		printf("Press (y/n) to procede and possibly overwrite files:\n");
-		opt = getchar();
-		getchar();
-		if ((opt =='y') || (opt == 'Y'))
-		{
-			printf("ELLSOLVEC: User chose to proceed.\n");
-		}
-		else
-		{
-			printf("ELLSOLVEC: User chose to abort.\n");
-			exit(1);
-		}
-	}
-	// Now CD to output directory.
-	if (chdir(dirname) == -1)
-	{
-		printf("ELLSOLVEC: WARNING! Could not CD to %s directory.\n", dirname);
-		printf("Press (y/n) to procede and write in current directory:\n");
-		opt = getchar();
-		getchar();
-		if ((opt =='y') || (opt == 'Y'))
-		{
-			printf("ELLSOLVEC: User chose to proceed.\n");
-		}
-		else
-		{
-			printf("ELLSOLVEC: User chose to abort.\n");
-			exit(1);
-		}
-	}
+	make_directory_and_cd(dirname);
 
 	// First get finite difference order.
 	if (norder == 2)
