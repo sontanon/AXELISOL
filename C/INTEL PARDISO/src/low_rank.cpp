@@ -7,7 +7,11 @@
 #define BASE 0
 
 // Allocate diff array.
+#ifdef FORTRAN
+extern "C" void low_rank_allocate_(const int ndiff)
+#else
 void low_rank_allocate(const int ndiff)
+#endif
 {
 	// Sanity check that diff array has not already been allocated.
 	if (diff != NULL)
@@ -25,7 +29,11 @@ void low_rank_allocate(const int ndiff)
 }
 
 // Deallocate diff array.
+#ifdef FORTRAN
+extern "C" void low_rank_deallocate_(void)
+#else
 void low_rank_deallocate(void)
+#endif
 {
 	// Deallocate.
 	free(diff);
@@ -43,6 +51,16 @@ int ndiff_flat_laplacian(const int NrInterior, const int NzInterior)
 	
 	return ndiff;
 }
+#ifdef FORTRAN
+extern "C" void ndiff_flat_laplacian_(int *ndiff, const int NrInterior, const int NzInterior)
+{
+	// Number of elements is independent of order.
+	*ndiff = NrInterior * NzInterior;
+
+	return;
+}
+#endif
+
 // General elliptic equation.
 int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int order)
 {
@@ -64,9 +82,33 @@ int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int
 	return ndiff;
 }
 
+#ifdef FORTRAN
+extern "C" void ndiff_general_elliptic_(int *ndiff, const int NrInterior, const int NzInterior, const int order)
+{
+	// Second order Laplacian.
+	if (order == 2)
+	{
+		*ndiff = 9 * NrInterior * NzInterior;
+	}
+	// Fourth order Laplacian.
+	else if (order == 4)
+	{
+		*ndiff = 17 * (NrInterior - 2) * (NzInterior - 2)
+		 + (16 + 26) * (NrInterior + NzInterior - 4)
+		 + (14 + 21 + 21 + 27);
+	}
+
+	return;
+}
+#endif
+
 // Fill diff array.
 // Flat Laplacian.
+#ifdef FORTRAN
+extern "C" void low_rank_flat_laplacian_(const int NrInterior, const int NzInterior)
+#else
 void low_rank_flat_laplacian(const int NrInterior, const int NzInterior)
+#endif
 {
 	// Auxiliary integers.
 	int i, j;
@@ -115,7 +157,11 @@ void low_rank_flat_laplacian(const int NrInterior, const int NzInterior)
 	return;
 }
 // General elliptic equation.
+#ifdef FORTRAN
+extern "C" void low_rank_general_elliptic_(const int NrInterior, const int NzInterior, const int order)
+#else
 void low_rank_general_elliptic(const int NrInterior, const int NzInterior, const int order)
+#endif
 {
 	// Auxiliary integers.
 	int i, j;

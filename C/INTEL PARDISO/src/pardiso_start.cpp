@@ -5,7 +5,11 @@
 #undef DEBUG
 
 // Initialize PARDISO parameters and memory.
+#ifdef FORTRAN
+extern "C" void pardiso_start_(const int NrInterior, const int NzInterior)
+#else
 void pardiso_start(const int NrInterior, const int NzInterior)
+#endif
 {
 	// Real unsymmetric matrix.
 	mtype = 11;

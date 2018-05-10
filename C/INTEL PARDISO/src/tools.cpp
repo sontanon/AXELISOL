@@ -71,6 +71,30 @@ void write_single_file(const double *u, const char *fname, const int NrTotal, co
 
 	return;
 }
+#ifdef FORTRAN
+extern "C" void write_single_file_(const double *u, const char *fname, const int NrTotal, const int NzTotal)
+{
+	// Auxiliary integers.
+	int i, j;
+
+	// Open file.
+	FILE *fp = fopen(fname, "w");
+
+	// Loop over r, z and write values.
+	for (i = 0; i < NrTotal; i++)
+	{
+		for (j = 0; j < NzTotal; j++)
+		{
+			fprintf(fp, (j < NzTotal - 1) ? "%9.18E\t" : "%9.18E\n", u[IDX(i, j)]);
+		}
+	}
+
+	// Close file.
+	fclose(fp);
+
+	return;
+}
+#endif
 
 // Create CSR matrix.
 void csr_allocate(csr_matrix *A, const int nrows, const int ncols, const int nnz)

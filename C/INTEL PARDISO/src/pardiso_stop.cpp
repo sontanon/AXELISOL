@@ -3,7 +3,11 @@
 #include "pardiso.h"
 
 // Clear PARDISO memory and structures.
+#ifdef FORTRAN
+extern "C" void pardiso_stop_(void)
+#else
 void pardiso_stop(void)
+#endif
 {
 #ifdef VERBOSE
 	printf("PARDISO: Clearing internal memory...\n");
