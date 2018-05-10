@@ -5,7 +5,7 @@
 *.asc
 
 # Default output directories.
-**/output
+**/output*
 
 # Jupyter notebook checkpoints.
 **/.ipynb_checkpoints
@@ -17,5 +17,4 @@
 **/bin
 
 # Executables.
-ELLSOLVEC
-ELLSOLVEF
+**/ELLSOLVE*
