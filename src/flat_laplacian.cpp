@@ -33,21 +33,35 @@
 //
 #ifdef FORTRAN
 extern "C" void flat_laplacian_(double *u,	// Output solution.
-	double *res,		// Ouput residual.
-	const double *s,	// Input linear source.
-	const double *f,	// Input RHS.
-	const double uInf,	// u value at infinity for Robin BC.
-	const int robin,	// Robin BC type: 1, 2, 3.
-	const int r_sym,	// R symmetry: 1(even), -1(odd).
-	const int z_sym,	// Z symmetry: 1(even), -1(odd).
-	const int NrInterior,	// Number of r interior points.
-	const int NzInterior,	// Number of z interior points.
-	const int ghost_zones,	// Number of ghost zones.
-	const double dr, 	// Spatial step in r.
-	const double dz,	// Spatial step in z.
-	const int norder,	// Finite difference evolution: 2 or 4.
-	const int lr_use,	// Use low rank update.
-	const int precond_use) 	// Calculate and/or use preconditioner.
+	double *res,		 // Ouput residual.
+	const double *s,	 // Input linear source.
+	const double *f,	 // Input RHS.
+	const double *p_uInf,	 // u value at infinity for Robin BC.
+	const int *p_robin,	 // Robin BC type: 1, 2, 3.
+	const int *p_r_sym,	 // R symmetry: 1(even), -1(odd).
+	const int *p_z_sym,	 // Z symmetry: 1(even), -1(odd).
+	const int *p_NrInterior, // Number of r interior points.
+	const int *p_NzInterior, // Number of z interior points.
+	const int *p_ghost_zones,// Number of ghost zones.
+	const double *p_dr, 	 // Spatial step in r.
+	const double *p_dz,	 // Spatial step in z.
+	const int *p_norder,	 // Finite difference evolution: 2 or 4.
+	const int *p_lr_use,	 // Use low rank update.
+	const int *p_precond_use)// Calculate and/or use preconditioner.
+{
+	// Variables passed by reference.
+	double uInf = *p_uInf;
+	int robin = *p_robin;
+	int r_sym = *p_r_sym;
+	int z_sym = *p_z_sym;
+	int NrInterior = *p_NrInterior;
+	int NzInterior = *p_NzInterior;
+	int ghost_zones = *p_ghost_zones;
+	double dr = *p_dr;
+	double dz = *p_dz;
+	int norder = *p_norder;
+	int lr_use = *p_lr_use;
+	int precond_use = *p_precond_use;
 #else 
 void flat_laplacian(double *u,	// Output solution.
 	double *res,		// Ouput residual.
@@ -65,8 +79,8 @@ void flat_laplacian(double *u,	// Output solution.
 	const int norder,	// Finite difference evolution: 2 or 4.
 	const int lr_use,	// Use low rank update.
 	const int precond_use) 	// Calculate and/or use preconditioner.
-#endif
 {
+#endif
 	// Set original number of ghost zones.
 	int ghost = ghost_zones;
 

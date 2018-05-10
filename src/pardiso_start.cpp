@@ -6,11 +6,14 @@
 
 // Initialize PARDISO parameters and memory.
 #ifdef FORTRAN
-extern "C" void pardiso_start_(const int NrInterior, const int NzInterior)
+extern "C" void pardiso_start_(const int *p_NrInterior, const int *p_NzInterior)
+{
+	int NrInterior = *p_NrInterior;
+	int NzInterior = *p_NzInterior;
 #else
 void pardiso_start(const int NrInterior, const int NzInterior)
-#endif
 {
+#endif
 	// Real unsymmetric matrix.
 	mtype = 11;
 	// One RHS.

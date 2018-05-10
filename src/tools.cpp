@@ -72,8 +72,12 @@ void write_single_file(const double *u, const char *fname, const int NrTotal, co
 	return;
 }
 #ifdef FORTRAN
-extern "C" void write_single_file_(const double *u, const char *fname, const int NrTotal, const int NzTotal)
+extern "C" void write_single_file_(const double *u, const char *fname, const int *p_NrTotal, const int *p_NzTotal)
 {
+	// Variables passed by reference.
+	int NrTotal = *p_NrTotal;
+	int NzTotal = *p_NzTotal;
+
 	// Auxiliary integers.
 	int i, j;
 

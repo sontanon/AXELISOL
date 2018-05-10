@@ -8,11 +8,13 @@
 
 // Allocate diff array.
 #ifdef FORTRAN
-extern "C" void low_rank_allocate_(const int ndiff)
+extern "C" void low_rank_allocate_(const int *p_ndiff)
+{
+	int ndiff = *p_ndiff;
 #else
 void low_rank_allocate(const int ndiff)
-#endif
 {
+#endif
 	// Sanity check that diff array has not already been allocated.
 	if (diff != NULL)
 	{
@@ -52,10 +54,10 @@ int ndiff_flat_laplacian(const int NrInterior, const int NzInterior)
 	return ndiff;
 }
 #ifdef FORTRAN
-extern "C" void ndiff_flat_laplacian_(int *ndiff, const int NrInterior, const int NzInterior)
+extern "C" void ndiff_flat_laplacian_(int *ndiff, const int *NrInterior, const int *NzInterior)
 {
 	// Number of elements is independent of order.
-	*ndiff = NrInterior * NzInterior;
+	*ndiff = *NrInterior * *NzInterior;
 
 	return;
 }
@@ -83,18 +85,18 @@ int ndiff_general_elliptic(const int NrInterior, const int NzInterior, const int
 }
 
 #ifdef FORTRAN
-extern "C" void ndiff_general_elliptic_(int *ndiff, const int NrInterior, const int NzInterior, const int order)
+extern "C" void ndiff_general_elliptic_(int *ndiff, const int *NrInterior, const int *NzInterior, const int *order)
 {
 	// Second order Laplacian.
-	if (order == 2)
+	if (*order == 2)
 	{
-		*ndiff = 9 * NrInterior * NzInterior;
+		*ndiff = 9 * *NrInterior * *NzInterior;
 	}
 	// Fourth order Laplacian.
-	else if (order == 4)
+	else if (*order == 4)
 	{
-		*ndiff = 17 * (NrInterior - 2) * (NzInterior - 2)
-		 + (16 + 26) * (NrInterior + NzInterior - 4)
+		*ndiff = 17 * (*NrInterior - 2) * (*NzInterior - 2)
+		 + (16 + 26) * (*NrInterior + *NzInterior - 4)
 		 + (14 + 21 + 21 + 27);
 	}
 
@@ -105,11 +107,15 @@ extern "C" void ndiff_general_elliptic_(int *ndiff, const int NrInterior, const 
 // Fill diff array.
 // Flat Laplacian.
 #ifdef FORTRAN
-extern "C" void low_rank_flat_laplacian_(const int NrInterior, const int NzInterior)
+extern "C" void low_rank_flat_laplacian_(const int *p_NrInterior, const int *p_NzInterior)
+{
+	// Variables passed by reference.
+	int NrInterior = *p_NrInterior;
+	int NzInterior = *p_NzInterior;
 #else
 void low_rank_flat_laplacian(const int NrInterior, const int NzInterior)
-#endif
 {
+#endif
 	// Auxiliary integers.
 	int i, j;
 	int NrTotal = NrInterior + 2;
@@ -158,11 +164,16 @@ void low_rank_flat_laplacian(const int NrInterior, const int NzInterior)
 }
 // General elliptic equation.
 #ifdef FORTRAN
-extern "C" void low_rank_general_elliptic_(const int NrInterior, const int NzInterior, const int order)
+extern "C" void low_rank_general_elliptic_(const int *p_NrInterior, const int *p_NzInterior, const int *p_order)
+{
+	// Variables passed by reference.
+	int NrInterior = *p_NrInterior;
+	int NzInterior = *p_NzInterior;
+	int order = *p_order;
 #else
 void low_rank_general_elliptic(const int NrInterior, const int NzInterior, const int order)
-#endif
 {
+#endif
 	// Auxiliary integers.
 	int i, j;
     	int NrTotal = NrInterior + 2;
