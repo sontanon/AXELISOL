@@ -4,9 +4,6 @@
 // Standard headers.
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef WIN
-#define _USE_MATH_DEFINES
-#endif
 #include <math.h>
 #include <time.h>
 #include <assert.h>
@@ -16,12 +13,7 @@
 // System headers.
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef WIN
-#include <io.h>
-#include <direct.h>
-#else
 #include <unistd.h>
-#endif
 
 // Indexing macro: requires that NzTotal be defined in scope.
 #define IDX(i, j) ((i) * NzTotal + (j))
