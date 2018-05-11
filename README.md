@@ -89,7 +89,7 @@ where <a href="http://www.codecogs.com/eqnedit.php?latex=\inline&space;u_\infty"
 ## Grid and variables.
 As already mentioned, this program uses a cartesian ρ, z grid. The grid structure is drawn in the follwing figure:
 
-![Grid Strucutre](https://github.com/sontanon/AXELISOL/blob/master/grid.png)
+![Grid Strucutre](https://github.com/sontanon/AXELISOL/blob/master/figures/grid.png)
 
 * The red points are the ghost zones used for symmetry about the ρ, z axes. If you wish to use second order finite differences, there must be at least one ghost zones. On the other hand, fourth order finite differences requires at least two ghost zones. The number of ghost zones is reffered as `ghost` in subroutine calls. In this example there are two ghost zones.
 * The black points are the actual interior points of the grid and are called `NrInterior` and `NzInterior` corresponding to ρ, z respectively. The figure above hast 7 interior points in both directions.

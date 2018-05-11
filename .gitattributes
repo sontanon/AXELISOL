@@ -1,1 +1,5 @@
 *.ipynb linguist-vendored
+*.md linguist-vendored
+Makefile linguist-vendored
+*.png linguist-vendored
+*.txt linguist-vendored
